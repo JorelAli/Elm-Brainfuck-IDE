@@ -32,6 +32,24 @@ type alias Program = {
 
 type alias Output = Maybe Char
 
+createProgram : String -> Program 
+createProgram input = {
+    program = input
+    , brackets = Dict.empty
+  }
+
+generateDict : String -> Int -> List Int -> Dict Int Int -> Dict Int Int
+generateDict prog pos stack dict = 
+  case String.uncons prog of
+    Just (head, tail) ->
+      case head of
+        '[' -> generateDict tail (pos + 1) (pos :: stack) dict
+        ']' -> case stack of
+          x::xs -> generateDict tail (pos + 1) xs (Dict.insert x pos dict)
+          [] -> dict --Crash!
+        _ -> generateDict tail (pos + 1) stack dict
+    Nothing -> dict
+
 interpret : Program -> Memory -> (Memory, Output)
 interpret prog memory = (defaultMemory, Nothing)
 
