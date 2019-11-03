@@ -5,13 +5,13 @@ import Dict exposing (Dict)
 
 type alias Memory = {
   pointer : Int
-  , data : List Int
+  , data : Dict Int Int
   }
 
 defaultMemory : Memory
 defaultMemory = {
   pointer = 0
-  , data = []
+  , data = Dict.empty
   }
 
 
@@ -27,63 +27,124 @@ type alias Program = {
       4 -> 3
       5 -> 0
     --}
-    , brackets: Dict Int Int
+    , jumpMap: Dict Int Int
+    , instructionPointer : Int
+    , output : List Char
   }
-
-type alias Output = Maybe Char
 
 createProgram : String -> Program 
 createProgram input = {
     program = input
-    , brackets = Dict.empty
+    , jumpMap = generateJumpMap input
+    , instructionPointer = 0
+    , output = []
   }
 
-generateDict : String -> Int -> List Int -> Dict Int Int -> Dict Int Int
-generateDict prog pos stack dict = 
-  case String.uncons prog of
-    Just (head, tail) ->
-      case head of
-        '[' -> generateDict tail (pos + 1) (pos :: stack) dict
-        ']' -> case stack of
-          x::xs -> generateDict tail (pos + 1) xs (Dict.insert x pos dict)
-          [] -> dict --Crash!
-        _ -> generateDict tail (pos + 1) stack dict
-    Nothing -> dict
+generateJumpMap program = 
+  let
+    doubleDict : Dict Int Int -> Dict Int Int
+    doubleDict dict = List.foldl 
+      (\elem -> \acc -> 
+        case elem of 
+          (k, v) -> Dict.insert v k acc) dict (Dict.toList dict)
 
-interpret : Program -> Memory -> (Memory, Output)
-interpret prog memory = (defaultMemory, Nothing)
+    generateDict : String -> Int -> List Int -> Dict Int Int -> Dict Int Int
+    generateDict prog pos stack dict = 
+      case String.uncons prog of
+        Just (head, tail) ->
+          case head of
+            '[' -> generateDict tail (pos + 1) (pos :: stack) dict
+            ']' -> case stack of
+              x::xs -> generateDict tail (pos + 1) xs (Dict.insert x pos dict)
+              [] -> dict --This case should never occur!
+            _ -> generateDict tail (pos + 1) stack dict
+        Nothing -> dict
+  in
+    generateDict program 0 [] Dict.empty |> doubleDict
+
+interpret : Program -> Memory -> (Program, Memory)
+interpret program memory = 
+  let
+    nextState = interpretInstruction program memory
+  in
+    let 
+      newProg = Tuple.first nextState
+      newMem = Tuple.second nextState
+    in
+    if .instructionPointer newProg == (1 + String.length program.program)
+    then (program, memory) 
+    else interpret newProg newMem
 
 --String's toList function returns a List Char (may be useful!)
 
-interpretInstruction : Char -> Memory -> (Memory, Output)
-interpretInstruction instruction memory = 
+interpretInstruction : Program -> Memory -> (Program, Memory)
+interpretInstruction program memory = 
   let
     modify : (Int -> Int -> Int) -> (Int -> Int -> Int)
     modify operation = (\index -> \cVal -> if index == memory.pointer then operation cVal 1 else cVal)
+
+    update : (Int -> Int -> Int) -> Int
+    update operation = operation currentData 1
+
+    currentData : Int
+    currentData = Maybe.withDefault 0 <| Dict.get memory.pointer memory.data 
+
+    programInstruction : Char
+    programInstruction = 
+      String.slice program.instructionPointer (program.instructionPointer + 1) program.program
+      |> String.uncons
+      |> Maybe.withDefault ('#', "")
+      |> Tuple.first
   in
   
-  case instruction of
+  case programInstruction of
     -- Increment pointer
-    '>' -> ({ memory | pointer = memory.pointer + 1}, Nothing)
+    '>' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, { memory | pointer = memory.pointer + 1})
 
     -- Decrement pointer
-    '<' -> ({ memory | pointer = memory.pointer - 1}, Nothing)
+    '<' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, { memory | pointer = memory.pointer - 1})
 
     -- Increment value at pointer
-    '+' -> ({ memory | data = List.indexedMap (modify (+)) memory.data}, Nothing)
+    '+' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, { memory | data = Dict.insert memory.pointer (update (+)) memory.data})
 
     -- Decrement value at pointer
-    '-' -> ({ memory | data = List.indexedMap (modify (-)) memory.data}, Nothing)
+    '-' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, { memory | data = Dict.insert memory.pointer (update (-)) memory.data})
 
     -- Output value at pointer
-    '.' -> (memory, Just (Char.fromCode (Maybe.withDefault 0 (Array.get memory.pointer (Array.fromList memory.data)))))
+    '.' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      , output = (Char.fromCode currentData) :: program.output}, memory)
 
     -- Input value into pointer (currently not implemented)
-    ',' -> (memory, Nothing)
+    ',' -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, memory)
 
     -- Begin loop
-    '[' -> (memory, Nothing)
+    '[' -> case currentData of
+      0 -> ({program 
+        | instructionPointer = Maybe.withDefault 0 (Dict.get program.instructionPointer program.jumpMap)
+        }, memory) -- Jump forward
+      _ -> ({program 
+        | instructionPointer = program.instructionPointer + 1
+        }, memory)
 
-    ']' -> (memory, Nothing)
+    ']' -> case currentData of
+      0 -> ({program 
+        | instructionPointer = program.instructionPointer + 1
+        }, memory)
+      _ -> ({program 
+        | instructionPointer = Maybe.withDefault 0 (Dict.get program.instructionPointer program.jumpMap)
+        }, memory) -- Jump back
 
-    _ -> (defaultMemory, Nothing) 
+    _ -> ({program 
+      | instructionPointer = program.instructionPointer + 1
+      }, memory)
