@@ -62,6 +62,13 @@ generateJumpMap program =
   in
     generateDict program 0 [] Dict.empty |> doubleDict
 
+printOutput : (Program, Memory) -> String
+printOutput result = 
+  Tuple.first result 
+  |> .output 
+  |> String.fromList 
+  |> String.reverse
+
 interpret : Program -> Memory -> (Program, Memory)
 interpret program memory = 
   let
