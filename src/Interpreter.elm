@@ -1,6 +1,7 @@
 module Interpreter exposing (..)
 
 import Array
+import Dict exposing (Dict)
 
 type alias Memory = {
   pointer : Int
@@ -14,7 +15,21 @@ defaultMemory = {
   }
 
 
-type alias Program = String
+type alias Program = {
+    program: String
+    {-- 
+      A mapping of brackets to brackets, based on their character index. For example:
+      "[[][]]" = 
+      0 -> 5
+      1 -> 2
+      2 -> 1
+      3 -> 4
+      4 -> 3
+      5 -> 0
+    --}
+    , brackets: Dict Int Int
+  }
+
 type alias Output = Maybe Char
 
 interpret : Program -> Memory -> (Memory, Output)
@@ -25,8 +40,8 @@ interpret prog memory = (defaultMemory, Nothing)
 interpretInstruction : Char -> Memory -> (Memory, Output)
 interpretInstruction instruction memory = 
   let
-      modify : (Int -> Int -> Int) -> (Int -> Int -> Int)
-      modify operation = (\index -> \cVal -> if index == memory.pointer then operation cVal 1 else cVal)
+    modify : (Int -> Int -> Int) -> (Int -> Int -> Int)
+    modify operation = (\index -> \cVal -> if index == memory.pointer then operation cVal 1 else cVal)
   in
   
   case instruction of
@@ -49,8 +64,8 @@ interpretInstruction instruction memory =
     ',' -> (memory, Nothing)
 
     -- Begin loop
-    '[' -> ({ memory | 
-      pointer = --TODO
-      }, Nothing)
+    '[' -> (memory, Nothing)
+
+    ']' -> (memory, Nothing)
 
     _ -> (defaultMemory, Nothing) 
