@@ -14,6 +14,7 @@ defaultMemory = {
   , data = Dict.empty
   }
 
+type ProgramState = Running | AwaitingInput
 
 type alias Program = {
     program: String
@@ -30,6 +31,7 @@ type alias Program = {
     , jumpMap: Dict Int Int
     , instructionPointer : Int
     , output : List Char
+    , state : ProgramState
   }
 
 createProgram : String -> Program 
@@ -38,6 +40,7 @@ createProgram input = {
     , jumpMap = generateJumpMap input
     , instructionPointer = 0
     , output = []
+    , state = Running
   }
 
 generateJumpMap program = 
@@ -81,8 +84,6 @@ interpret program memory =
     if .instructionPointer newProg == (1 + String.length program.program)
     then (program, memory) 
     else interpret newProg newMem
-
---String's toList function returns a List Char (may be useful!)
 
 interpretInstruction : Program -> Memory -> (Program, Memory)
 interpretInstruction program memory = 
@@ -130,9 +131,10 @@ interpretInstruction program memory =
       | instructionPointer = program.instructionPointer + 1
       , output = (Char.fromCode currentData) :: program.output}, memory)
 
-    -- Input value into pointer (currently not implemented)
+    -- Input value into pointer
     ',' -> ({program 
       | instructionPointer = program.instructionPointer + 1
+      , state = AwaitingInput
       }, memory)
 
     -- Begin loop
