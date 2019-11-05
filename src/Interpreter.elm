@@ -1,6 +1,6 @@
 module Interpreter exposing (..)
 
-import Array
+-- import Array
 import Dict exposing (Dict)
 
 type alias Memory = {
@@ -43,6 +43,7 @@ createProgram input = {
     , state = Running
   }
 
+generateJumpMap : String -> Dict Int Int
 generateJumpMap program = 
   let
     doubleDict : Dict Int Int -> Dict Int Int
@@ -72,24 +73,32 @@ printOutput result =
   |> String.fromList 
   |> String.reverse
 
+countBrackets : String -> (Int, Int)
+countBrackets str = 
+  String.foldl (\c -> \(x, y) ->
+    case c of 
+      '[' -> (x + 1, y)
+      ']' -> (x, y + 1)
+      _ -> (x, y)) (0, 0) str
+
+
+
 interpret : Program -> Memory -> (Program, Memory)
-interpret program memory = 
+interpret program memory =
   let
-    nextState = interpretInstruction program memory
-  in
-    let 
+      nextState = interpretInstruction program memory
       newProg = Tuple.first nextState
       newMem = Tuple.second nextState
-    in
+  in
     if .instructionPointer newProg == (1 + String.length program.program)
     then (program, memory) 
     else interpret newProg newMem
 
 interpretInstruction : Program -> Memory -> (Program, Memory)
-interpretInstruction program memory = 
+interpretInstruction program memory =
   let
-    modify : (Int -> Int -> Int) -> (Int -> Int -> Int)
-    modify operation = (\index -> \cVal -> if index == memory.pointer then operation cVal 1 else cVal)
+    -- modify : (Int -> Int -> Int) -> (Int -> Int -> Int)
+    -- modify operation = \index -> \cVal -> if index == memory.pointer then operation cVal 1 else cVal
 
     update : (Int -> Int -> Int) -> Int
     update operation = operation currentData 1
@@ -129,7 +138,7 @@ interpretInstruction program memory =
     -- Output value at pointer
     '.' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      , output = (Char.fromCode currentData) :: program.output}, memory)
+      , output = Char.fromCode currentData :: program.output}, memory)
 
     -- Input value into pointer
     ',' -> ({program 
