@@ -7,6 +7,7 @@ import Browser
 -- import Html.Attributes exposing (..)
 -- import Html.Events exposing (onInput, onClick)
 import Css exposing (..)
+import Css.Global exposing (global, body)
 import Html
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols)
@@ -44,8 +45,15 @@ main = Browser.document {
   init = init
   , update = update
   , view = \model -> {
-     title = "Title!"
-    , body = [ Html.Styled.toUnstyled (view model) ]
+     title = "Brainfuck IDE"
+    , body = List.map Html.Styled.toUnstyled [
+      global [ 
+        body [
+          backgroundColor theme.background
+        ]
+      ]
+      , (view model) 
+    ]
   }
   , subscriptions = \model -> Sub.none
   }
@@ -74,24 +82,85 @@ update msg model =
 -- VIEW
 view : Model -> Html Msg
 view model = 
-  div []
+  div [
+    css [
+      marginLeft auto
+      , marginRight auto
+      , width (pct 80)
+    ]
+  ]
     [ 
-      codingBlock model
-    , div [
-      css [
-          centeredElements
-        ]
-
-    ] [ textarea [] [ text (model.progOutput) ] ]
-    , button [ onClick Update ] [ text "blah" ]
+      title
+      , codingBlock model
+      , outputBlock model 
     ]
 
-theme : { secondary : Color, primary : Color, fontColor : Color }
+theme : { secondary : Color, background : Color, fontColor : Color, fontSize : Float }
 theme =
-    { primary = hex "002B36"
+    { background = hex "002B36"
     , secondary = hex "2AA198" --rgb 250 240 230
     , fontColor = hex "FDF6E3"
+    , fontSize = 16
     }
+
+title : Html Msg
+title = div [
+    css [
+      fontSize (pt 40)
+      , color theme.fontColor
+      , centeredElements
+      , textAlign center
+      , paddingBottom (px 20)
+      , paddingTop (px 20)
+      , fontFamilies [ "monospace" ]
+    ]
+  ] 
+  [ 
+    text "Brainfuck IDE" 
+    , hr [] []
+  ]
+
+
+outputBlock : Model -> Html Msg
+outputBlock model = div [
+    css [
+      width (pct 100)
+      , displayFlex
+    ]
+  ] [ 
+  textarea [
+    css [
+        centeredElements
+      , backgroundColor theme.background
+      , color theme.fontColor
+      , fontSize (pt theme.fontSize)
+      , width (pct 80)
+      , borderColor theme.secondary
+      , borderWidth (px 5)
+      , padding (px 10)
+      , height (pt 20)
+      , overflowY hidden
+    ]
+  ] [ text (model.progOutput) ]
+  , button [
+    css [
+      width (pct 20)
+      , marginLeft (px 20)
+      , backgroundColor theme.background
+      , color theme.fontColor
+      , fontSize (pt theme.fontSize)
+      , borderColor theme.secondary
+      , borderWidth (px 5)
+      , borderStyle solid
+      , hover
+        [ 
+          borderColor theme.background
+          , backgroundColor theme.secondary
+        ]
+    ]
+    , onClick Update
+  ] [ text "Run code!" ] 
+  ]
 
 codingBlock : Model -> Html Msg
 codingBlock model = textarea [ 
@@ -101,13 +170,14 @@ codingBlock model = textarea [
     , rows 20
     , css [
         centeredElements
-      , backgroundColor theme.primary
+      , backgroundColor theme.background
       , color theme.fontColor
-      , fontSize (px 20)
-      , width (pct 80)
+      , fontSize (pt theme.fontSize)
+      , width (calc (pct 100) minus (px 30))
       , borderColor theme.secondary
       , borderWidth (px 5)
       , padding (px 10)
+      , marginBottom (px 20)
     ]
   ] []
 
