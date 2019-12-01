@@ -73,6 +73,9 @@ formatChar indentation prev cur next =
       else ("\n" ++ indentationToString (indentation - 1) ++ "]", indentation - 1)
     _ -> ("", indentation)
 
+unformat : String -> String 
+unformat = strip
+
 strip : String -> String
 strip str = 
   case String.uncons str of

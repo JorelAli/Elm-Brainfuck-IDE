@@ -9,6 +9,9 @@ import Browser
 import Browser.Events
 import Json.Decode as Decode
 
+-- Command handling
+import Browser.Navigation exposing (load)
+
 -- CSS
 import Css exposing (..)
 import Css.Global exposing (global, body, selector)
@@ -20,7 +23,7 @@ import Html.Styled.Events exposing (onClick, onInput)
 
 -- Brainfuck helpers
 import Interpreter exposing (simpleInterpret)
-import Formatter exposing (format)
+import Formatter exposing (format, unformat)
 
 -- CONSTANTS
 defaultProgram : String
@@ -50,7 +53,7 @@ main = Browser.document {
     , body = List.map Html.Styled.toUnstyled [
       global [ 
         body [
-          backgroundColor theme.background
+          backgroundColor theme.primary
         ]
         -- Style the scrollbar with Webkit
         , selector "::-webkit-scrollbar" [
@@ -106,6 +109,8 @@ type Msg
   = Change String -- When the program input has been changed
   | Update        -- When a program has been evaluated (run code is pressed)
   | UpdateFormat  -- When the format button is pressed
+  | Unformat      -- Unformats the code
+  | GotoGithub    -- ... Goes to GitHub
   -- | EnterTab
   -- | DoNothing
 
@@ -119,6 +124,8 @@ update msg model =
     Update -> ({ model | progOutput = simpleInterpret model.content }, Cmd.none)
     -- Format program
     UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
+    Unformat -> ({ model | content = unformat model.content }, Cmd.none)
+    GotoGithub -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
     -- DoNothing -> (model, Cmd.none)
     -- EnterTab -> ({model | content = ""}, Cmd.none)
 
@@ -140,12 +147,13 @@ view model =
     ]
 
 -- Color schemes / "constant" CSS values
-theme : { secondary : Color, background : Color, fontColor : Color, fontSize : Float }
+theme : { secondary : Color, primary : Color, fontColor : Color, fontSize : Float, margins : Px }
 theme =
-  { background = hex "002B36"
-  , secondary = hex "2AA198"
+  { primary = hex "360036" --"002B36" 
+  , secondary = hex "660066" --"2AA198"
   , fontColor = hex "FDF6E3"
   , fontSize = 16
+  , margins = (px 20)
   }
 
 -- Title (at top of page)
@@ -156,8 +164,8 @@ title = div [
       , color theme.fontColor
       , centeredElements
       , textAlign center
-      , paddingBottom (px 20)
-      , paddingTop (px 20)
+      , paddingBottom theme.margins
+      , paddingTop (px 40)
       , width (pct 100)
       , fontFamilies [ "monospace" ]
     ]
@@ -173,13 +181,13 @@ outputBlock model = div [
     css [
       width (pct 100)
       , displayFlex
-      , marginBottom (px 20)
+      , marginBottom theme.margins
     ]
   ] [ 
     textarea [
     css [
         centeredElements
-      , backgroundColor theme.background
+      , backgroundColor theme.primary
       , color theme.fontColor
       , fontSize (pt theme.fontSize)
       , width (pct 80)
@@ -202,8 +210,8 @@ outputBlock model = div [
 buttonCss : Style
 buttonCss = Css.batch [
     width (pct 20)
-    , marginLeft (px 20)
-    , backgroundColor theme.background
+    , marginLeft theme.margins
+    , backgroundColor theme.primary
     , color theme.fontColor
     , fontSize (pt theme.fontSize)
     , borderColor theme.secondary
@@ -211,7 +219,7 @@ buttonCss = Css.batch [
     , borderStyle solid
     , hover
       [ 
-        borderColor theme.background
+        borderColor theme.primary
         , backgroundColor theme.secondary
       ]
   ]
@@ -222,7 +230,7 @@ toolbar model = div [
     css [
       width (pct 100)
       , displayFlex
-      , marginBottom (px 20)
+      , marginBottom theme.margins
     ]
   ] [ 
     button [ 
@@ -242,8 +250,8 @@ toolbar model = div [
         , height (pt 40)
         , width (pct 25)
       ]
-      , onClick Update 
-    ] [ text "Run code!" ] 
+      , onClick Unformat 
+    ] [ text "Minify code" ] 
     , button [ 
       css [
         centeredElements
@@ -260,8 +268,8 @@ toolbar model = div [
         , height (pt 40)
         , width (pct 25)
       ]
-      , onClick Update 
-    ] [ text "Run code!" ] 
+      , onClick GotoGithub 
+    ] [ text "GitHub page" ] 
   ]
 
 -- Main coding block
@@ -275,14 +283,14 @@ codingBlock model = div []
       , rows 20
       , css [
           centeredElements
-        , backgroundColor theme.background
+        , backgroundColor theme.primary
         , color theme.fontColor
         , fontSize (pt theme.fontSize)
         , width (calc (pct 100) minus (px 30))
         , borderColor theme.secondary
         , borderWidth (px 5)
         , padding (px 10)
-        , marginBottom (px 20)
+        , marginBottom theme.margins
       ]
     ] []
   ]
