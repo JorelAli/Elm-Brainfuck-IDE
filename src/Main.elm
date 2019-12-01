@@ -17,8 +17,8 @@ import Css exposing (..)
 import Css.Global exposing (global, body, selector)
 
 -- HTML
-import Html.Styled exposing (Html, div, textarea, button, text, hr, p)
-import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute)
+import Html.Styled exposing (Html, div, textarea, button, text, hr, p, input)
+import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute, type_)
 import Html.Styled.Events exposing (onClick, onInput)
 
 -- Brainfuck helpers
@@ -102,7 +102,7 @@ type alias Model = {
 
 -- Initial state
 init : flags -> (Model, Cmd Msg)
-init _ = ({ content = defaultProgram, progOutput = "", displayOptions = True }, Cmd.none)
+init _ = ({ content = defaultProgram, progOutput = "", displayOptions = False }, Cmd.none)
 
 -- UPDATE
 type Msg
@@ -149,7 +149,7 @@ view model =
       title
       , if model.displayOptions then optionCodeBlock model else codingBlock model
       , outputBlock model 
-      , toolbar model
+      -- , toolbar model
     ]
 
 -- Color schemes / "constant" CSS values
@@ -209,7 +209,6 @@ optionCodeBlock model = div [
         , borderWidth (px 5)
         , padding (px 10)
         , minHeight (pt 20)
-        , marginBottom theme.margins
       ]
     ] []
   , div [
@@ -218,7 +217,7 @@ optionCodeBlock model = div [
         , marginLeft theme.margins
       ]
     ] [
-      p [ css [labelCss] ] [ text "Ook Conversion Tools" ]
+      p [ css [labelCss] ] [ text "Ook Conversion" ]
       , hr [] []
       , button [ 
         css [ 
@@ -240,7 +239,7 @@ optionCodeBlock model = div [
         ]
         , onClick ConvertFromOok 
         ] [ text "Convert from Ook!" ] 
-      , p [ css [labelCss] ] [ text "Option here" ]
+      , p [ css [labelCss] ] [ text "Code Formatting" ]
       , hr [] []
       , button [ 
         css [ 
@@ -248,9 +247,32 @@ optionCodeBlock model = div [
           , width (pct 100) 
           , height (pt 40)
           , marginLeft zero
+          , marginBottom theme.margins
         ]
-        , onClick Update 
-        ] [ text "Run code!" ] 
+        , onClick UpdateFormat 
+        ] [ text "Format code" ] 
+      , button [ 
+        css [ 
+          buttonCss 
+          , width (pct 100) 
+          , height (pt 40)
+          , marginLeft zero
+          , marginBottom theme.margins
+        ]
+        , onClick Unformat 
+        ] [ text "Minify code" ] 
+      , p [ css [labelCss] ] [ text "External Links" ]
+      , hr [] []
+      , button [ 
+        css [ 
+          buttonCss 
+          , width (pct 100) 
+          , height (pt 40)
+          , marginLeft zero
+          -- , marginBottom theme.margins
+        ]
+        , onClick GotoGithub 
+        ] [ text "GitHub Page" ] 
     ]
   ]
 
@@ -261,6 +283,7 @@ outputBlock model = div [
       width (pct 100)
       , displayFlex
       , marginBottom theme.margins
+      , marginTop theme.margins
     ]
   ] [ 
     textarea [
@@ -284,6 +307,14 @@ outputBlock model = div [
       css [ buttonCss ]
       , onClick Update 
     ] [ text "Run code!" ] 
+  , button [ 
+      css [ 
+        buttonCss 
+        , width (em 3)
+        , backgroundColor (if model.displayOptions then theme.secondary else theme.primary)
+      ]
+      , onClick ToggleOptions 
+    ] [ text "🛠️" ] 
   ]
 
 -- CSS for buttons
@@ -352,7 +383,7 @@ toolbar model = div [
         , width (pct 25)
       ]
       , onClick ToggleOptions
-    ] [ text "Toggle option panel" ] 
+    ] [ text "Toggle toolbar" ] 
     , button [ 
       css [
         centeredElements

@@ -77,7 +77,7 @@ formatChar indentation prev cur next =
       _ -> ("", indentation)
 
 unformat : String -> String 
-unformat = strip
+unformat str = if isOok str then str else strip str
 
 strip : String -> String
 strip str = 
@@ -125,7 +125,7 @@ convertFromOok str =
   let
 
     listOfOoks : List String
-    listOfOoks = String.split " " (String.trim str)
+    listOfOoks = String.words str
 
     pairList : List String -> List (String, String)
     pairList list = 
