@@ -1,13 +1,14 @@
 module Interpreter exposing (..)
 
--- import Array
 import Dict exposing (Dict)
 
+-- Memory (pointer to current cell and "an array" of index to value)
 type alias Memory = {
   pointer : Int
   , data : Dict Int Int
   }
 
+-- Empty memory
 defaultMemory : Memory
 defaultMemory = {
   pointer = 0
@@ -34,6 +35,7 @@ type alias Program = {
     , state : ProgramState
   }
 
+-- Turns a String into a Program
 createProgram : String -> Program 
 createProgram input = {
     program = input
@@ -43,15 +45,18 @@ createProgram input = {
     , state = Running
   }
 
+-- Generates the jump map 
 generateJumpMap : String -> Dict Int Int
 generateJumpMap program = 
   let
+    -- Reverses a dictionary
     doubleDict : Dict Int Int -> Dict Int Int
     doubleDict dict = List.foldl 
       (\elem -> \acc -> 
         case elem of 
           (k, v) -> Dict.insert v k acc) dict (Dict.toList dict)
 
+    -- Converts a program into a jump map
     generateDict : String -> Int -> List Int -> Dict Int Int -> Dict Int Int
     generateDict prog pos stack dict = 
       case String.uncons prog of
@@ -66,6 +71,7 @@ generateJumpMap program =
   in
     generateDict program 0 [] Dict.empty |> doubleDict
 
+-- Prints the output of a program, given its memory
 printOutput : (Program, Memory) -> String
 printOutput result = 
   Tuple.first result 
@@ -73,6 +79,25 @@ printOutput result =
   |> String.fromList 
   |> String.reverse
 
+-- Interprets a program string and returns its string output
+simpleInterpret : String -> String
+simpleInterpret input = if
+    validateProgram input
+  then
+    interpret (createProgram input) defaultMemory |> printOutput
+  else 
+    "nope"
+
+-- Checks if a program is valid (has the right number of brackets)
+validateProgram : String -> Bool
+validateProgram program = 
+  let
+    brackets : (Int, Int)
+    brackets = countBrackets program
+  in
+    Tuple.first brackets == Tuple.second brackets
+
+-- Counts the number of brackets in a String
 countBrackets : String -> (Int, Int)
 countBrackets str = 
   String.foldl (\c -> \(x, y) ->
@@ -81,6 +106,8 @@ countBrackets str =
       ']' -> (x, y + 1)
       _ -> (x, y)) (0, 0) str
 
+-- Given a program and its current memory, evaluate the program
+-- to completion 
 interpret : Program -> Memory -> (Program, Memory)
 interpret program memory =
   let
@@ -92,6 +119,7 @@ interpret program memory =
     then (program, memory) 
     else interpret newProg newMem
 
+-- Interpret a single instruction, given the program and its current memory
 interpretInstruction : Program -> Memory -> (Program, Memory)
 interpretInstruction program memory =
   let

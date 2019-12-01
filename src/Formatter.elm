@@ -65,8 +65,12 @@ formatChar indentation prev cur next =
       else ("-", indentation)
     '.' -> (indentationToString indentation ++ ".\n", indentation)
     ',' -> (indentationToString indentation ++ ",\n", indentation)
-    '[' -> ("\n" ++ indentationToString indentation ++ "[", indentation + 1) --"\n    [" --indent++
-    ']' -> ("\n" ++ indentationToString (indentation - 1) ++ "]", indentation - 1) --"\n    ]" --indent--
+    '[' -> if next == '-' || next == '+'
+      then ("\n" ++ indentationToString indentation ++ "[\n" ++ indentationToString (indentation + 1), indentation + 1) 
+      else ("\n" ++ indentationToString indentation ++ "[", indentation + 1) 
+    ']' -> if next == '-' || next == '+'
+      then ("\n" ++ indentationToString (indentation - 1) ++ "]\n" ++ indentationToString (indentation - 1), indentation - 1)
+      else ("\n" ++ indentationToString (indentation - 1) ++ "]", indentation - 1)
     _ -> ("", indentation)
 
 strip : String -> String

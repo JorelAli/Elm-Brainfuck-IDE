@@ -2,56 +2,57 @@ module Main exposing (..)
 
 --Main code goes here
 
+-- Import browser 
 import Browser
--- import Html exposing (Html, Attribute, div, input, textarea, text, button)
--- import Html.Attributes exposing (..)
--- import Html.Events exposing (onInput, onClick)
+
+-- Subscription handling
+import Browser.Events
+import Json.Decode as Decode
+
+-- CSS
 import Css exposing (..)
 import Css.Global exposing (global, body, selector)
-import Html
-import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly)
+
+-- HTML
+import Html.Styled exposing (Html, div, textarea, button, text, hr)
+import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute)
 import Html.Styled.Events exposing (onClick, onInput)
-import Interpreter exposing (..)
+
+-- Brainfuck helpers
+import Interpreter exposing (simpleInterpret)
 import Formatter exposing (format)
 
 -- CONSTANTS
 defaultProgram : String
-defaultProgram = """+++++ +++++             initialize counter (cell #0) to 10
-[                       use loop to set 70/100/30/10
-    > +++++ ++              add  7 to cell #1
-    > +++++ +++++           add 10 to cell #2
-    > +++                   add  3 to cell #3
-    > +                     add  1 to cell #4
-<<<< -                  decrement counter (cell #0)
+defaultProgram = """+++++ +++++ 
+[
+    > +++
+    > +++++ ++
+    > +++++ +++++ 
+    <<< -
 ]
-> ++ .                  print 'H'
-> + .                   print 'e'
-+++++ ++ .              print 'l'
-.                       print 'l'
-+++ .                   print 'o'
-> ++ .                  print ' '
-<< +++++ +++++ +++++ .  print 'W'
-> .                     print 'o'
-+++ .                   print 'r'
------ - .               print 'l'
------ --- .             print 'd'
-> + .                   print '!'
-> .                     print '\n'
+>> ++.
+> +++++ .
+<< +++.
 """
 
 -- MAIN
 main : Platform.Program () Model Msg
+-- Note the use of Browser.document, which gives us 
+-- access to a much more powerful "view" method
 main = Browser.document { 
   init = init
   , update = update
   , view = \model -> {
-     title = "Brainfuck IDE"
+      -- Title for webpage
+      title = "Brainfuck IDE"
+      -- Set global body styling
     , body = List.map Html.Styled.toUnstyled [
       global [ 
         body [
           backgroundColor theme.background
         ]
+        -- Style the scrollbar with Webkit
         , selector "::-webkit-scrollbar" [
           property "background" "#002B36"
         ]
@@ -70,36 +71,58 @@ main = Browser.document {
           , property "color" "#2AA198"
         ]
       ]
-      , (view model) 
+      -- Rest of the HTML
+      , view model
     ]
   }
-  , subscriptions = \model -> Sub.none
+  , subscriptions = subscriptions
   }
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model = Sub.none -- Browser.Events.onKeyDown keyDecoder
+
+-- keyDecoder : Decode.Decoder Msg
+-- keyDecoder = Decode.map toKey (Decode.field "key" Decode.string)
+
+-- toKey : String -> Msg
+-- toKey string =
+--   case string of 
+--     "Tab" -> EnterTab
+--     _ -> DoNothing
 
 -- MODEL
 type alias Model = { 
-    content : String
-    , progOutput : String
+      content : String    -- Program input
+    , progOutput : String -- Program output
   }
 
+-- Initial state
 init : flags -> (Model, Cmd Msg)
 init _ = ({ content = defaultProgram, progOutput = "" }, Cmd.none)
 
 -- UPDATE
 type Msg
-  = Change String
-  | Update
-  | UpdateFormat
+  = Change String -- When the program input has been changed
+  | Update        -- When a program has been evaluated (run code is pressed)
+  | UpdateFormat  -- When the format button is pressed
+  -- | EnterTab
+  -- | DoNothing
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    -- Update program input
     Change newContent ->
       ({ model | content = newContent }, Cmd.none)
+    -- Update program output
     Update -> ({ model | progOutput = simpleInterpret model.content }, Cmd.none)
+    -- Format program
     UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
+    -- DoNothing -> (model, Cmd.none)
+    -- EnterTab -> ({model | content = ""}, Cmd.none)
 
--- VIEW
+-- VIEW (Main div)
 view : Model -> Html Msg
 view model = 
   div [
@@ -116,14 +139,16 @@ view model =
       , toolbar model
     ]
 
+-- Color schemes / "constant" CSS values
 theme : { secondary : Color, background : Color, fontColor : Color, fontSize : Float }
 theme =
-    { background = hex "002B36"
-    , secondary = hex "2AA198" --rgb 250 240 230
-    , fontColor = hex "FDF6E3"
-    , fontSize = 16
-    }
+  { background = hex "002B36"
+  , secondary = hex "2AA198"
+  , fontColor = hex "FDF6E3"
+  , fontSize = 16
+  }
 
+-- Title (at top of page)
 title : Html Msg
 title = div [
     css [
@@ -142,6 +167,7 @@ title = div [
     , hr [] []
   ]
 
+-- Output block (where program output goes)
 outputBlock : Model -> Html Msg
 outputBlock model = div [
     css [
@@ -172,6 +198,7 @@ outputBlock model = div [
     ] [ text "Run code!" ] 
   ]
 
+-- CSS for buttons
 buttonCss : Style
 buttonCss = Css.batch [
     width (pct 20)
@@ -189,6 +216,7 @@ buttonCss = Css.batch [
       ]
   ]
 
+-- Toolbar of useful buttons (below the output)
 toolbar : Model -> Html Msg
 toolbar model = div [
     css [
@@ -236,6 +264,7 @@ toolbar model = div [
     ] [ text "Run code!" ] 
   ]
 
+-- Main coding block
 codingBlock : Model -> Html Msg
 codingBlock model = div []
   [
@@ -258,6 +287,7 @@ codingBlock model = div []
     ] []
   ]
 
+-- Style that centers elements
 centeredElements : Style
 centeredElements = Css.batch [ 
     display block
@@ -266,19 +296,3 @@ centeredElements = Css.batch [
     , marginRight auto
     , width (pct 50)
   ]
-
-simpleInterpret : String -> String
-simpleInterpret input = if
-    validateProgram input == False
-  then
-    "nope"
-  else 
-    interpret (createProgram input) defaultMemory |> printOutput
-
-validateProgram : String -> Bool
-validateProgram program = 
-  let
-    brackets : (Int, Int)
-    brackets = countBrackets program
-  in
-    Tuple.first brackets == Tuple.second brackets
