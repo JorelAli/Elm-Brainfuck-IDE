@@ -23,7 +23,7 @@ import Html.Styled.Events exposing (onClick, onInput)
 
 -- Brainfuck helpers
 import Interpreter exposing (simpleInterpret)
-import Formatter exposing (format, unformat)
+import Formatter exposing (format, unformat, convertToOok, convertFromOok)
 
 -- CONSTANTS
 defaultProgram : String
@@ -113,6 +113,8 @@ type Msg
   | Unformat      -- Unformats the code
   | GotoGithub    -- ... Goes to GitHub
   | ToggleOptions 
+  | ConvertToOok
+  | ConvertFromOok
   -- | EnterTab
   -- | DoNothing
 
@@ -129,6 +131,8 @@ update msg model =
     Unformat -> ({ model | content = unformat model.content }, Cmd.none)
     GotoGithub -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
     ToggleOptions -> ({ model | displayOptions = not model.displayOptions }, Cmd.none)
+    ConvertToOok -> ({ model | content = convertToOok model.content }, Cmd.none)
+    ConvertFromOok -> ({ model | content = convertFromOok model.content }, Cmd.none)
     -- DoNothing -> (model, Cmd.none)
     -- EnterTab -> ({model | content = ""}, Cmd.none)
 
@@ -215,7 +219,7 @@ optionCodeBlock model = div [
         , marginLeft theme.margins
       ]
     ] [
-      p [ css [labelCss] ] [ text "Ook converter" ]
+      p [ css [labelCss] ] [ text "Ook Conversion Tools" ]
       , hr [] []
       , button [ 
         css [ 
@@ -224,7 +228,7 @@ optionCodeBlock model = div [
           , marginLeft zero
           , marginBottom theme.margins
         ]
-        , onClick Update 
+        , onClick ConvertToOok 
         ] [ text "Convert to Ook!" ] 
       , button [ 
         css [ 
@@ -233,7 +237,7 @@ optionCodeBlock model = div [
           , marginLeft zero
           , marginBottom theme.margins
         ]
-        , onClick Update 
+        , onClick ConvertFromOok 
         ] [ text "Convert from Ook!" ] 
       , p [ css [labelCss] ] [ text "Option here" ]
       , hr [] []

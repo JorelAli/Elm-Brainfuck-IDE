@@ -1,6 +1,7 @@
 module Interpreter exposing (..)
 
 import Dict exposing (Dict)
+import Formatter exposing (convertFromOok)
 
 -- Memory (pointer to current cell and "an array" of index to value)
 type alias Memory = {
@@ -84,7 +85,7 @@ simpleInterpret : String -> String
 simpleInterpret input = if
     validateProgram input
   then
-    interpret (createProgram input) defaultMemory |> printOutput
+    interpret (createProgram (convertFromOok input)) defaultMemory |> printOutput
   else 
     "Failed to run program! (Check that brackets match)"
 
