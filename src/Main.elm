@@ -57,21 +57,21 @@ main = Browser.document {
         ]
         -- Style the scrollbar with Webkit
         , selector "::-webkit-scrollbar" [
-          property "background" "#002B36"
+          property "background" ("#" ++ theme.primaryStr)
         ]
         , selector "::-webkit-scrollbar-track" [
-          property "background" "#002B36"
+          property "background" ("#" ++ theme.primaryStr)
         ]
         , selector "::-webkit-scrollbar-thumb" [
-          property "background" "#2AA198"
+          property "background" ("#" ++ theme.secondaryStr)
         ]
         , selector "::-webkit-scrollbar-thumb:hover" [
-          property "background" "#2AA198"
+          property "background" ("#" ++ theme.secondaryStr)
         ]
         , selector "::-webkit-resizer" [
-          property "background-color" "#2AA198"
-          , property "background" "#2AA198"
-          , property "color" "#2AA198"
+          property "background-color" ("#" ++ theme.secondaryStr)
+          , property "background" ("#" ++ theme.secondaryStr)
+          , property "color" ("#" ++ theme.secondaryStr)
         ]
       ]
       -- Rest of the HTML
@@ -147,13 +147,19 @@ view model =
     ]
 
 -- Color schemes / "constant" CSS values
-theme : { secondary : Color, primary : Color, fontColor : Color, fontSize : Float, margins : Px }
+theme : { secondary : Color, primary : Color, fontColor : Color, fontSize : Float, margins : Px, primaryStr : String, secondaryStr : String }
 theme =
-  { primary = hex "360036" --"002B36" 
-  , secondary = hex "660066" --"2AA198"
+  let 
+    primaryStr = "360036" 
+    secondaryStr = "660066"
+  in
+  { primary = hex primaryStr --"002B36" 
+  , secondary = hex secondaryStr --"2AA198"
   , fontColor = hex "FDF6E3"
   , fontSize = 16
   , margins = (px 20)
+  , primaryStr = primaryStr
+  , secondaryStr = secondaryStr
   }
 
 -- Title (at top of page)
@@ -259,8 +265,8 @@ toolbar model = div [
         , height (pt 40)
         , width (pct 25)
       ]
-      , onClick Update 
-    ] [ text "Run code!" ] 
+      -- , onClick Update 
+    ] [ text "... Coming soon" ] 
     , button [ 
       css [
         centeredElements
