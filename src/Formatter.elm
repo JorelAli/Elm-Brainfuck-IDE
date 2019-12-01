@@ -11,8 +11,10 @@ cleanup semiFormatted =
     c = String.replace "<<<<<" "<<<<< " b
     d = String.replace ">>>>>" ">>>>> " c
     e = String.replace "\n\n" "\n" d
+    f = String.replace " ." "." e
+    g = String.replace " ," "," f
   in 
-    e
+    g
 
 formatIterator : Char -> Int -> String -> String -> String
 formatIterator prevChar indentation restOfProgram currentOutput = 

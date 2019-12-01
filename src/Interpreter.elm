@@ -86,7 +86,7 @@ simpleInterpret input = if
   then
     interpret (createProgram input) defaultMemory |> printOutput
   else 
-    "nope"
+    "Failed to run program! (Check that brackets match)"
 
 -- Checks if a program is valid (has the right number of brackets)
 validateProgram : String -> Bool

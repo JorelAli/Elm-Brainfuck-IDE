@@ -17,7 +17,7 @@ import Css exposing (..)
 import Css.Global exposing (global, body, selector)
 
 -- HTML
-import Html.Styled exposing (Html, div, textarea, button, text, hr)
+import Html.Styled exposing (Html, div, textarea, button, text, hr, p)
 import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute)
 import Html.Styled.Events exposing (onClick, onInput)
 
@@ -29,14 +29,14 @@ import Formatter exposing (format, unformat)
 defaultProgram : String
 defaultProgram = """+++++ +++++ 
 [
-    > +++
     > +++++ ++
-    > +++++ +++++ 
+    > +++++ +++++
+    > +++ 
     <<< -
 ]
->> ++.
-> +++++ .
-<< +++.
+> ++.
+> +++++.
+> +++.
 """
 
 -- MAIN
@@ -98,11 +98,12 @@ subscriptions model = Sub.none -- Browser.Events.onKeyDown keyDecoder
 type alias Model = { 
       content : String    -- Program input
     , progOutput : String -- Program output
+    , displayOptions : Bool 
   }
 
 -- Initial state
 init : flags -> (Model, Cmd Msg)
-init _ = ({ content = defaultProgram, progOutput = "" }, Cmd.none)
+init _ = ({ content = defaultProgram, progOutput = "", displayOptions = True }, Cmd.none)
 
 -- UPDATE
 type Msg
@@ -111,6 +112,7 @@ type Msg
   | UpdateFormat  -- When the format button is pressed
   | Unformat      -- Unformats the code
   | GotoGithub    -- ... Goes to GitHub
+  | ToggleOptions 
   -- | EnterTab
   -- | DoNothing
 
@@ -126,6 +128,7 @@ update msg model =
     UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
     Unformat -> ({ model | content = unformat model.content }, Cmd.none)
     GotoGithub -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
+    ToggleOptions -> ({ model | displayOptions = not model.displayOptions }, Cmd.none)
     -- DoNothing -> (model, Cmd.none)
     -- EnterTab -> ({model | content = ""}, Cmd.none)
 
@@ -141,7 +144,7 @@ view model =
   ]
     [ 
       title
-      , codingBlock model
+      , if model.displayOptions then optionCodeBlock model else codingBlock model
       , outputBlock model 
       , toolbar model
     ]
@@ -181,6 +184,70 @@ title = div [
     , hr [] []
   ]
 
+optionCodeBlock : Model -> Html Msg
+optionCodeBlock model = div [
+    css [
+      width (pct 100)
+      , displayFlex
+    ]
+  ] [
+    textarea [ 
+      placeholder "Brainfuck Program"
+      , value model.content
+      , onInput Change
+      , rows 20
+      , css [
+          centeredElements
+        , backgroundColor theme.primary
+        , color theme.fontColor
+        , fontSize (pt theme.fontSize)
+        , width (calc (pct 80) minus (px 30))
+        , borderColor theme.secondary
+        , borderWidth (px 5)
+        , padding (px 10)
+        , minHeight (pt 20)
+        , marginBottom theme.margins
+      ]
+    ] []
+  , div [
+      css [
+        width (pct 20)
+        , marginLeft theme.margins
+      ]
+    ] [
+      p [ css [labelCss] ] [ text "Ook converter" ]
+      , hr [] []
+      , button [ 
+        css [ 
+          buttonCss 
+          , width (pct 100) 
+          , marginLeft zero
+          , marginBottom theme.margins
+        ]
+        , onClick Update 
+        ] [ text "Convert to Ook!" ] 
+      , button [ 
+        css [ 
+          buttonCss 
+          , width (pct 100) 
+          , marginLeft zero
+          , marginBottom theme.margins
+        ]
+        , onClick Update 
+        ] [ text "Convert from Ook!" ] 
+      , p [ css [labelCss] ] [ text "Option here" ]
+      , hr [] []
+      , button [ 
+        css [ 
+          buttonCss 
+          , width (pct 100) 
+          , marginLeft zero
+        ]
+        , onClick Update 
+        ] [ text "Run code!" ] 
+    ]
+  ]
+
 -- Output block (where program output goes)
 outputBlock : Model -> Html Msg
 outputBlock model = div [
@@ -205,6 +272,7 @@ outputBlock model = div [
       , overflowY hidden
     ]
     , readonly True
+    , placeholder "Code output"
   ] [ text (model.progOutput) ]
   , button [ 
       css [ buttonCss ]
@@ -225,9 +293,21 @@ buttonCss = Css.batch [
     , borderStyle solid
     , hover
       [ 
-        borderColor theme.primary
-        , backgroundColor theme.secondary
+        backgroundColor theme.secondary
       ]
+  ]
+
+-- CSS for labels
+labelCss : Style
+labelCss = Css.batch [
+    width (pct 100)
+    , backgroundColor theme.primary
+    , color theme.fontColor
+    , fontSize (pt theme.fontSize)
+    , textAlign center
+    , fontFamilies ["Arial"]
+    , marginTop zero
+    , marginBottom zero
   ]
 
 -- Toolbar of useful buttons (below the output)
@@ -265,8 +345,8 @@ toolbar model = div [
         , height (pt 40)
         , width (pct 25)
       ]
-      -- , onClick Update 
-    ] [ text "... Coming soon" ] 
+      , onClick ToggleOptions
+    ] [ text "Toggle option panel" ] 
     , button [ 
       css [
         centeredElements
@@ -297,6 +377,7 @@ codingBlock model = div []
         , borderWidth (px 5)
         , padding (px 10)
         , marginBottom theme.margins
+        , minHeight (pt 20)
       ]
     ] []
   ]
