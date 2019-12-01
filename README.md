@@ -10,7 +10,7 @@ In June 2015, I began working on a [Brainfuck IDE in Java](https://github.com/Jo
 
 After some time, (in September 2017), I decided to rewrite the IDE and have it as an online service, so you can edit brainfuck online. This became my [Brainfuck_IDE_Online](https://github.com/JorelAli/Brainfuck_IDE_Online), which used NodeJS ([express](https://expressjs.com/) and [socket.io](https://socket.io/)). Unfortunately, that never really took off (it had code formatting and code unformatting, but no evaluation).
 
-Now, in 2019, I decided to recreate the project in [Elm](http://elm-lang.org/), as I am currently learning Elm for web development.
+Now, in 2019, I decided to redo the project in [Elm](http://elm-lang.org/), as I am currently learning Elm for web development.
 
 ## Outcomes
 
