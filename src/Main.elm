@@ -36,8 +36,7 @@ defaultProgram = """+++++ +++++
 ]
 > ++.
 > +++++.
-> +++.
-"""
+> +++."""
 
 -- MAIN
 main : Platform.Program () Model Msg
@@ -225,6 +224,7 @@ optionCodeBlock model = div [
         css [ 
           buttonCss 
           , width (pct 100) 
+          , height (pt 40)
           , marginLeft zero
           , marginBottom theme.margins
         ]
@@ -234,6 +234,7 @@ optionCodeBlock model = div [
         css [ 
           buttonCss 
           , width (pct 100) 
+          , height (pt 40)
           , marginLeft zero
           , marginBottom theme.margins
         ]
@@ -245,6 +246,7 @@ optionCodeBlock model = div [
         css [ 
           buttonCss 
           , width (pct 100) 
+          , height (pt 40)
           , marginLeft zero
         ]
         , onClick Update 

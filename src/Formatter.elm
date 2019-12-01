@@ -7,16 +7,14 @@ format program =
 
 cleanup : String -> String
 cleanup semiFormatted =
-  let
-    a = String.replace "+++++" "+++++ " semiFormatted
-    b = String.replace "-----" "----- " a
-    c = String.replace "<<<<<" "<<<<< " b
-    d = String.replace ">>>>>" ">>>>> " c
-    e = String.replace "\n\n" "\n" d
-    f = String.replace " ." "." e
-    g = String.replace " ," "," f
-  in 
-    g
+  String.replace " ," ","
+  <| String.replace " ." "."
+  <| String.replace "\n\n" "\n"
+  <| String.replace ">>>>>" ">>>>> "
+  <| String.replace "<<<<<" "<<<<< "
+  <| String.replace "-----" "----- " 
+  <| String.replace "+++++" "+++++ " 
+  <| semiFormatted
 
 formatIterator : Char -> Int -> String -> String -> String
 formatIterator prevChar indentation restOfProgram currentOutput = 
