@@ -81,8 +81,6 @@ countBrackets str =
       ']' -> (x, y + 1)
       _ -> (x, y)) (0, 0) str
 
-
-
 interpret : Program -> Memory -> (Program, Memory)
 interpret program memory =
   let

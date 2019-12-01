@@ -7,12 +7,13 @@ import Browser
 -- import Html.Attributes exposing (..)
 -- import Html.Events exposing (onInput, onClick)
 import Css exposing (..)
-import Css.Global exposing (global, body)
+import Css.Global exposing (global, body, selector)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols)
+import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly)
 import Html.Styled.Events exposing (onClick, onInput)
 import Interpreter exposing (..)
+import Formatter exposing (format)
 
 -- CONSTANTS
 defaultProgram : String
@@ -51,6 +52,23 @@ main = Browser.document {
         body [
           backgroundColor theme.background
         ]
+        , selector "::-webkit-scrollbar" [
+          property "background" "#002B36"
+        ]
+        , selector "::-webkit-scrollbar-track" [
+          property "background" "#002B36"
+        ]
+        , selector "::-webkit-scrollbar-thumb" [
+          property "background" "#2AA198"
+        ]
+        , selector "::-webkit-scrollbar-thumb:hover" [
+          property "background" "#2AA198"
+        ]
+        , selector "::-webkit-resizer" [
+          property "background-color" "#2AA198"
+          , property "background" "#2AA198"
+          , property "color" "#2AA198"
+        ]
       ]
       , (view model) 
     ]
@@ -71,6 +89,7 @@ init _ = ({ content = defaultProgram, progOutput = "" }, Cmd.none)
 type Msg
   = Change String
   | Update
+  | UpdateFormat
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -78,6 +97,7 @@ update msg model =
     Change newContent ->
       ({ model | content = newContent }, Cmd.none)
     Update -> ({ model | progOutput = simpleInterpret model.content }, Cmd.none)
+    UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
 
 -- VIEW
 view : Model -> Html Msg
@@ -93,6 +113,7 @@ view model =
       title
       , codingBlock model
       , outputBlock model 
+      , toolbar model
     ]
 
 theme : { secondary : Color, background : Color, fontColor : Color, fontSize : Float }
@@ -112,6 +133,7 @@ title = div [
       , textAlign center
       , paddingBottom (px 20)
       , paddingTop (px 20)
+      , width (pct 100)
       , fontFamilies [ "monospace" ]
     ]
   ] 
@@ -120,15 +142,15 @@ title = div [
     , hr [] []
   ]
 
-
 outputBlock : Model -> Html Msg
 outputBlock model = div [
     css [
       width (pct 100)
       , displayFlex
+      , marginBottom (px 20)
     ]
   ] [ 
-  textarea [
+    textarea [
     css [
         centeredElements
       , backgroundColor theme.background
@@ -139,47 +161,102 @@ outputBlock model = div [
       , borderWidth (px 5)
       , padding (px 10)
       , height (pt 20)
+      , minHeight (pt 20)
       , overflowY hidden
     ]
+    , readonly True
   ] [ text (model.progOutput) ]
-  , button [
+  , button [ 
+      css [ buttonCss ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
+  ]
+
+buttonCss : Style
+buttonCss = Css.batch [
+    width (pct 20)
+    , marginLeft (px 20)
+    , backgroundColor theme.background
+    , color theme.fontColor
+    , fontSize (pt theme.fontSize)
+    , borderColor theme.secondary
+    , borderWidth (px 5)
+    , borderStyle solid
+    , hover
+      [ 
+        borderColor theme.background
+        , backgroundColor theme.secondary
+      ]
+  ]
+
+toolbar : Model -> Html Msg
+toolbar model = div [
     css [
-      width (pct 20)
-      , marginLeft (px 20)
-      , backgroundColor theme.background
-      , color theme.fontColor
-      , fontSize (pt theme.fontSize)
-      , borderColor theme.secondary
-      , borderWidth (px 5)
-      , borderStyle solid
-      , hover
-        [ 
-          borderColor theme.background
-          , backgroundColor theme.secondary
-        ]
+      width (pct 100)
+      , displayFlex
+      , marginBottom (px 20)
     ]
-    , onClick Update
-  ] [ text "Run code!" ] 
+  ] [ 
+    button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+        , marginLeft zero
+      ]
+      , onClick UpdateFormat 
+    ] [ text "Format code" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
   ]
 
 codingBlock : Model -> Html Msg
-codingBlock model = textarea [ 
-    placeholder "Brainfuck Program"
-    , value model.content
-    , onInput Change
-    , rows 20
-    , css [
-        centeredElements
-      , backgroundColor theme.background
-      , color theme.fontColor
-      , fontSize (pt theme.fontSize)
-      , width (calc (pct 100) minus (px 30))
-      , borderColor theme.secondary
-      , borderWidth (px 5)
-      , padding (px 10)
-      , marginBottom (px 20)
-    ]
-  ] []
+codingBlock model = div []
+  [
+    textarea [ 
+      placeholder "Brainfuck Program"
+      , value model.content
+      , onInput Change
+      , rows 20
+      , css [
+          centeredElements
+        , backgroundColor theme.background
+        , color theme.fontColor
+        , fontSize (pt theme.fontSize)
+        , width (calc (pct 100) minus (px 30))
+        , borderColor theme.secondary
+        , borderWidth (px 5)
+        , padding (px 10)
+        , marginBottom (px 20)
+      ]
+    ] []
+  ]
 
 centeredElements : Style
 centeredElements = Css.batch [ 
