@@ -98,11 +98,17 @@ type alias Model = {
       content : String    -- Program input
     , progOutput : String -- Program output
     , displayOptions : Bool 
+    , progInput : String -- Program input (via commas)
   }
 
 -- Initial state
 init : flags -> (Model, Cmd Msg)
-init _ = ({ content = defaultProgram, progOutput = "", displayOptions = False }, Cmd.none)
+init _ = ({ 
+  content = defaultProgram
+  , progOutput = ""
+  , displayOptions = False 
+  , progInput = ""
+  }, Cmd.none)
 
 -- UPDATE
 type Msg
@@ -114,6 +120,7 @@ type Msg
   | ToggleOptions 
   | ConvertToOok
   | ConvertFromOok
+  | ChangeInput String
   -- | EnterTab
   -- | DoNothing
 
@@ -121,10 +128,9 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     -- Update program input
-    Change newContent ->
-      ({ model | content = newContent }, Cmd.none)
+    Change newContent -> ({ model | content = newContent }, Cmd.none)
     -- Update program output
-    Update -> ({ model | progOutput = simpleInterpret model.content }, Cmd.none)
+    Update -> ({ model | progOutput = simpleInterpret model.content model.progInput }, Cmd.none)
     -- Format program
     UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
     Unformat -> ({ model | content = unformat model.content }, Cmd.none)
@@ -132,6 +138,7 @@ update msg model =
     ToggleOptions -> ({ model | displayOptions = not model.displayOptions }, Cmd.none)
     ConvertToOok -> ({ model | content = convertToOok model.content }, Cmd.none)
     ConvertFromOok -> ({ model | content = convertFromOok model.content }, Cmd.none)
+    ChangeInput newInput -> ({ model | progInput = newInput }, Cmd.none)
     -- DoNothing -> (model, Cmd.none)
     -- EnterTab -> ({model | content = ""}, Cmd.none)
 
@@ -148,6 +155,7 @@ view model =
     [ 
       title
       , if model.displayOptions then optionCodeBlock model else codingBlock model
+      , inputBlock model
       , outputBlock model 
       -- , toolbar model
     ]
@@ -176,7 +184,6 @@ title = div [
       , color theme.fontColor
       , centeredElements
       , textAlign center
-      , paddingBottom theme.margins
       , paddingTop (px 40)
       , width (pct 100)
       , fontFamilies [ "monospace" ]
@@ -184,7 +191,11 @@ title = div [
   ] 
   [ 
     text "Brainfuck IDE" 
-    , hr [] []
+    , hr [
+      css [
+        marginTop zero
+      ]
+    ] []
   ]
 
 optionCodeBlock : Model -> Html Msg
@@ -274,6 +285,34 @@ optionCodeBlock model = div [
         , onClick GotoGithub 
         ] [ text "GitHub Page" ] 
     ]
+  ]
+
+inputBlock : Model -> Html Msg
+inputBlock model =  div [
+    css [
+      width (pct 100)
+      , displayFlex
+      , marginBottom theme.margins
+      , marginTop theme.margins
+    ]
+  ] [ 
+    textarea [
+    css [
+        centeredElements
+      , backgroundColor theme.primary
+      , color theme.fontColor
+      , fontSize (pt theme.fontSize)
+      , width (pct 100)
+      , borderColor theme.secondary
+      , borderWidth (px 5)
+      , padding (px 10)
+      , height (pt 20)
+      , minHeight (pt 20)
+      , overflowY hidden
+    ]
+    , placeholder "Code input"
+    , onInput ChangeInput
+  ] [ text (model.progInput) ]
   ]
 
 -- Output block (where program output goes)

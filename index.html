@@ -7036,7 +7036,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{content: $author$project$Main$defaultProgram, displayOptions: false, progOutput: ''},
+		{content: $author$project$Main$defaultProgram, displayOptions: false, progInput: '', progOutput: ''},
 		$elm$core$Platform$Cmd$none);
 };
 var $rtfeldman$elm_css$VirtualDom$Styled$makeSnippet = F2(
@@ -8341,7 +8341,6 @@ var $author$project$Formatter$format = function (program) {
 			''));
 };
 var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $author$project$Interpreter$Running = {$: 'Running'};
 var $author$project$Interpreter$generateJumpMap = function (program) {
 	var generateDict = F4(
 		function (prog, pos, stack, dict) {
@@ -8411,17 +8410,17 @@ var $author$project$Interpreter$generateJumpMap = function (program) {
 	return doubleDict(
 		A4(generateDict, program, 0, _List_Nil, $elm$core$Dict$empty));
 };
-var $author$project$Interpreter$createProgram = function (input) {
-	return {
-		instructionPointer: 0,
-		jumpMap: $author$project$Interpreter$generateJumpMap(input),
-		output: _List_Nil,
-		program: input,
-		state: $author$project$Interpreter$Running
-	};
-};
+var $author$project$Interpreter$createProgram = F2(
+	function (input, progInput) {
+		return {
+			inputChars: $elm$core$String$toList(progInput),
+			instructionPointer: 0,
+			jumpMap: $author$project$Interpreter$generateJumpMap(input),
+			output: _List_Nil,
+			program: input
+		};
+	});
 var $author$project$Interpreter$defaultMemory = {data: $elm$core$Dict$empty, pointer: 0};
-var $author$project$Interpreter$AwaitingInput = {$: 'AwaitingInput'};
 var $elm$core$Char$fromCode = _Char_fromCode;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -8531,8 +8530,26 @@ var $author$project$Interpreter$interpretInstruction = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						program,
-						{instructionPointer: program.instructionPointer + 1, state: $author$project$Interpreter$AwaitingInput}),
-					memory);
+						{
+							inputChars: A2(
+								$elm$core$Maybe$withDefault,
+								_List_Nil,
+								$elm$core$List$tail(program.inputChars)),
+							instructionPointer: program.instructionPointer + 1
+						}),
+					_Utils_update(
+						memory,
+						{
+							data: A3(
+								$elm$core$Dict$insert,
+								memory.pointer,
+								$elm$core$Char$toCode(
+									A2(
+										$elm$core$Maybe$withDefault,
+										_Utils_chr('\u0000'),
+										$elm$core$List$head(program.inputChars))),
+								memory.data)
+						}));
 			case '[':
 				if (!currentData) {
 					return _Utils_Tuple2(
@@ -8606,6 +8623,9 @@ var $author$project$Interpreter$printOutput = function (result) {
 	return $elm$core$String$reverse(
 		$elm$core$String$fromList(result.a.output));
 };
+var $author$project$Interpreter$Good = {$: 'Good'};
+var $author$project$Interpreter$MismatchedBrackets = {$: 'MismatchedBrackets'};
+var $author$project$Interpreter$MissingInput = {$: 'MissingInput'};
 var $author$project$Interpreter$countBrackets = function (str) {
 	return A3(
 		$elm$core$String$foldl,
@@ -8626,18 +8646,43 @@ var $author$project$Interpreter$countBrackets = function (str) {
 		_Utils_Tuple2(0, 0),
 		str);
 };
-var $author$project$Interpreter$validateProgram = function (program) {
-	var brackets = $author$project$Interpreter$countBrackets(program);
-	return _Utils_eq(brackets.a, brackets.b);
-};
-var $author$project$Interpreter$simpleInterpret = function (input) {
-	return $author$project$Interpreter$validateProgram(input) ? $author$project$Interpreter$printOutput(
-		A2(
-			$author$project$Interpreter$interpret,
-			$author$project$Interpreter$createProgram(
-				$author$project$Formatter$convertFromOok(input)),
-			$author$project$Interpreter$defaultMemory)) : 'Failed to run program! (Check that brackets match)';
-};
+var $author$project$Interpreter$validateProgram = F2(
+	function (program, progInput) {
+		var countCommas = A3(
+			$elm$core$String$foldl,
+			function (c) {
+				return function (acc) {
+					return _Utils_eq(
+						c,
+						_Utils_chr(',')) ? (acc + 1) : 0;
+				};
+			},
+			0,
+			program);
+		var brackets = $author$project$Interpreter$countBrackets(program);
+		return (!_Utils_eq(brackets.a, brackets.b)) ? $author$project$Interpreter$MismatchedBrackets : ((!_Utils_eq(
+			countCommas,
+			$elm$core$String$length(progInput))) ? $author$project$Interpreter$MissingInput : $author$project$Interpreter$Good);
+	});
+var $author$project$Interpreter$simpleInterpret = F2(
+	function (input, progInput) {
+		var _v0 = A2($author$project$Interpreter$validateProgram, input, progInput);
+		switch (_v0.$) {
+			case 'Good':
+				return $author$project$Interpreter$printOutput(
+					A2(
+						$author$project$Interpreter$interpret,
+						A2(
+							$author$project$Interpreter$createProgram,
+							$author$project$Formatter$convertFromOok(input),
+							progInput),
+						$author$project$Interpreter$defaultMemory));
+			case 'MismatchedBrackets':
+				return 'Failed to run program! (Some brackets aren\'t matching)';
+			default:
+				return 'Failed to run program! (Input doesn\'t have enough characters)';
+		}
+	});
 var $author$project$Formatter$unformat = function (str) {
 	return $author$project$Formatter$isOok(str) ? str : $author$project$Formatter$strip(str);
 };
@@ -8656,7 +8701,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							progOutput: $author$project$Interpreter$simpleInterpret(model.content)
+							progOutput: A2($author$project$Interpreter$simpleInterpret, model.content, model.progInput)
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateFormat':
@@ -8693,13 +8738,20 @@ var $author$project$Main$update = F2(
 							content: $author$project$Formatter$convertToOok(model.content)
 						}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'ConvertFromOok':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
 							content: $author$project$Formatter$convertFromOok(model.content)
 						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var newInput = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{progInput: newInput}),
 					$elm$core$Platform$Cmd$none);
 		}
 	});
@@ -8949,6 +9001,70 @@ var $author$project$Main$codingBlock = function (model) {
 				_List_Nil)
 			]));
 };
+var $author$project$Main$ChangeInput = function (a) {
+	return {$: 'ChangeInput', a: a};
+};
+var $rtfeldman$elm_css$Css$displayFlex = A2($rtfeldman$elm_css$Css$property, 'display', 'flex');
+var $rtfeldman$elm_css$Css$height = $rtfeldman$elm_css$Css$prop1('height');
+var $rtfeldman$elm_css$Css$hidden = {borderStyle: $rtfeldman$elm_css$Css$Structure$Compatible, overflow: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'hidden', visibility: $rtfeldman$elm_css$Css$Structure$Compatible};
+var $rtfeldman$elm_css$Css$marginTop = $rtfeldman$elm_css$Css$prop1('margin-top');
+var $rtfeldman$elm_css$Css$overflowY = $rtfeldman$elm_css$Css$prop1('overflow-y');
+var $rtfeldman$elm_css$VirtualDom$Styled$text = function (str) {
+	return $rtfeldman$elm_css$VirtualDom$Styled$Unstyled(
+		$elm$virtual_dom$VirtualDom$text(str));
+};
+var $rtfeldman$elm_css$Html$Styled$text = $rtfeldman$elm_css$VirtualDom$Styled$text;
+var $author$project$Main$inputBlock = function (model) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Css$width(
+						$rtfeldman$elm_css$Css$pct(100)),
+						$rtfeldman$elm_css$Css$displayFlex,
+						$rtfeldman$elm_css$Css$marginBottom($author$project$Main$theme.margins),
+						$rtfeldman$elm_css$Css$marginTop($author$project$Main$theme.margins)
+					]))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$rtfeldman$elm_css$Html$Styled$textarea,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								$author$project$Main$centeredElements,
+								$rtfeldman$elm_css$Css$backgroundColor($author$project$Main$theme.primary),
+								$rtfeldman$elm_css$Css$color($author$project$Main$theme.fontColor),
+								$rtfeldman$elm_css$Css$fontSize(
+								$rtfeldman$elm_css$Css$pt($author$project$Main$theme.fontSize)),
+								$rtfeldman$elm_css$Css$width(
+								$rtfeldman$elm_css$Css$pct(100)),
+								$rtfeldman$elm_css$Css$borderColor($author$project$Main$theme.secondary),
+								$rtfeldman$elm_css$Css$borderWidth(
+								$rtfeldman$elm_css$Css$px(5)),
+								$rtfeldman$elm_css$Css$padding(
+								$rtfeldman$elm_css$Css$px(10)),
+								$rtfeldman$elm_css$Css$height(
+								$rtfeldman$elm_css$Css$pt(20)),
+								$rtfeldman$elm_css$Css$minHeight(
+								$rtfeldman$elm_css$Css$pt(20)),
+								$rtfeldman$elm_css$Css$overflowY($rtfeldman$elm_css$Css$hidden)
+							])),
+						$rtfeldman$elm_css$Html$Styled$Attributes$placeholder('Code input'),
+						$rtfeldman$elm_css$Html$Styled$Events$onInput($author$project$Main$ChangeInput)
+					]),
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$text(model.progInput)
+					]))
+			]));
+};
 var $author$project$Main$ConvertFromOok = {$: 'ConvertFromOok'};
 var $author$project$Main$ConvertToOok = {$: 'ConvertToOok'};
 var $author$project$Main$GotoGithub = {$: 'GotoGithub'};
@@ -8989,8 +9105,6 @@ var $author$project$Main$buttonCss = $rtfeldman$elm_css$Css$batch(
 					$rtfeldman$elm_css$Css$backgroundColor($author$project$Main$theme.secondary)
 				]))
 		]));
-var $rtfeldman$elm_css$Css$displayFlex = A2($rtfeldman$elm_css$Css$property, 'display', 'flex');
-var $rtfeldman$elm_css$Css$height = $rtfeldman$elm_css$Css$prop1('height');
 var $rtfeldman$elm_css$Html$Styled$hr = $rtfeldman$elm_css$Html$Styled$node('hr');
 var $rtfeldman$elm_css$Css$center = $rtfeldman$elm_css$Css$prop1('center');
 var $rtfeldman$elm_css$Css$stringsToValue = function (list) {
@@ -9010,7 +9124,6 @@ var $rtfeldman$elm_css$Css$fontFamilies = A2(
 	$elm$core$Basics$composeL,
 	$rtfeldman$elm_css$Css$prop1('font-family'),
 	$rtfeldman$elm_css$Css$stringsToValue);
-var $rtfeldman$elm_css$Css$marginTop = $rtfeldman$elm_css$Css$prop1('margin-top');
 var $rtfeldman$elm_css$Css$Internal$property = F2(
 	function (key, value) {
 		return $rtfeldman$elm_css$Css$Preprocess$AppendProperty(key + (':' + value));
@@ -9115,11 +9228,6 @@ var $rtfeldman$elm_css$Html$Styled$Events$onClick = function (msg) {
 		$elm$json$Json$Decode$succeed(msg));
 };
 var $rtfeldman$elm_css$Html$Styled$p = $rtfeldman$elm_css$Html$Styled$node('p');
-var $rtfeldman$elm_css$VirtualDom$Styled$text = function (str) {
-	return $rtfeldman$elm_css$VirtualDom$Styled$Unstyled(
-		$elm$virtual_dom$VirtualDom$text(str));
-};
-var $rtfeldman$elm_css$Html$Styled$text = $rtfeldman$elm_css$VirtualDom$Styled$text;
 var $author$project$Main$optionCodeBlock = function (model) {
 	return A2(
 		$rtfeldman$elm_css$Html$Styled$div,
@@ -9331,8 +9439,6 @@ var $author$project$Main$ToggleOptions = {$: 'ToggleOptions'};
 var $author$project$Main$Update = {$: 'Update'};
 var $rtfeldman$elm_css$Css$EmUnits = {$: 'EmUnits'};
 var $rtfeldman$elm_css$Css$em = A2($rtfeldman$elm_css$Css$Internal$lengthConverter, $rtfeldman$elm_css$Css$EmUnits, 'em');
-var $rtfeldman$elm_css$Css$hidden = {borderStyle: $rtfeldman$elm_css$Css$Structure$Compatible, overflow: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'hidden', visibility: $rtfeldman$elm_css$Css$Structure$Compatible};
-var $rtfeldman$elm_css$Css$overflowY = $rtfeldman$elm_css$Css$prop1('overflow-y');
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $rtfeldman$elm_css$Html$Styled$Attributes$boolProperty = F2(
 	function (key, bool) {
@@ -9425,7 +9531,6 @@ var $author$project$Main$outputBlock = function (model) {
 					]))
 			]));
 };
-var $rtfeldman$elm_css$Css$paddingBottom = $rtfeldman$elm_css$Css$prop1('padding-bottom');
 var $rtfeldman$elm_css$Css$paddingTop = $rtfeldman$elm_css$Css$prop1('padding-top');
 var $author$project$Main$title = A2(
 	$rtfeldman$elm_css$Html$Styled$div,
@@ -9439,7 +9544,6 @@ var $author$project$Main$title = A2(
 					$rtfeldman$elm_css$Css$color($author$project$Main$theme.fontColor),
 					$author$project$Main$centeredElements,
 					$rtfeldman$elm_css$Css$textAlign($rtfeldman$elm_css$Css$center),
-					$rtfeldman$elm_css$Css$paddingBottom($author$project$Main$theme.margins),
 					$rtfeldman$elm_css$Css$paddingTop(
 					$rtfeldman$elm_css$Css$px(40)),
 					$rtfeldman$elm_css$Css$width(
@@ -9452,7 +9556,17 @@ var $author$project$Main$title = A2(
 	_List_fromArray(
 		[
 			$rtfeldman$elm_css$Html$Styled$text('Brainfuck IDE'),
-			A2($rtfeldman$elm_css$Html$Styled$hr, _List_Nil, _List_Nil)
+			A2(
+			$rtfeldman$elm_css$Html$Styled$hr,
+			_List_fromArray(
+				[
+					$rtfeldman$elm_css$Html$Styled$Attributes$css(
+					_List_fromArray(
+						[
+							$rtfeldman$elm_css$Css$marginTop($rtfeldman$elm_css$Css$zero)
+						]))
+				]),
+			_List_Nil)
 		]));
 var $author$project$Main$view = function (model) {
 	return A2(
@@ -9472,6 +9586,7 @@ var $author$project$Main$view = function (model) {
 			[
 				$author$project$Main$title,
 				model.displayOptions ? $author$project$Main$optionCodeBlock(model) : $author$project$Main$codingBlock(model),
+				$author$project$Main$inputBlock(model),
 				$author$project$Main$outputBlock(model)
 			]));
 };

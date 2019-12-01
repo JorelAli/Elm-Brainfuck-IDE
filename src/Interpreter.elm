@@ -16,8 +16,6 @@ defaultMemory = {
   , data = Dict.empty
   }
 
-type ProgramState = Running | AwaitingInput
-
 type alias Program = {
     program: String
     {-- 
@@ -33,17 +31,17 @@ type alias Program = {
     , jumpMap: Dict Int Int
     , instructionPointer : Int
     , output : List Char
-    , state : ProgramState
+    , inputChars : List Char
   }
 
 -- Turns a String into a Program
-createProgram : String -> Program 
-createProgram input = {
+createProgram : String -> String -> Program 
+createProgram input progInput = {
     program = input
     , jumpMap = generateJumpMap input
     , instructionPointer = 0
     , output = []
-    , state = Running
+    , inputChars = String.toList progInput
   }
 
 -- Generates the jump map 
@@ -81,22 +79,28 @@ printOutput result =
   |> String.reverse
 
 -- Interprets a program string and returns its string output
-simpleInterpret : String -> String
-simpleInterpret input = if
-    validateProgram input
-  then
-    interpret (createProgram (convertFromOok input)) defaultMemory |> printOutput
-  else 
-    "Failed to run program! (Check that brackets match)"
+simpleInterpret : String -> String -> String
+simpleInterpret input progInput = 
+  case validateProgram input progInput of
+    Good -> interpret (createProgram (convertFromOok input) progInput) defaultMemory |> printOutput
+    MismatchedBrackets -> "Failed to run program! (Some brackets aren't matching)"
+    MissingInput -> "Failed to run program! (Input doesn't have enough characters)"
+
+type Validation = Good | MismatchedBrackets | MissingInput
 
 -- Checks if a program is valid (has the right number of brackets)
-validateProgram : String -> Bool
-validateProgram program = 
+validateProgram : String -> String -> Validation
+validateProgram program progInput = 
   let
     brackets : (Int, Int)
     brackets = countBrackets program
+
+    countCommas : Int
+    countCommas = String.foldl (\c -> \acc -> if c == ',' then (acc + 1) else 0) 0 program
   in
-    Tuple.first brackets == Tuple.second brackets
+    if Tuple.first brackets /= Tuple.second brackets then MismatchedBrackets
+    else if countCommas /= String.length progInput then MissingInput
+    else Good
 
 -- Counts the number of brackets in a String
 countBrackets : String -> (Int, Int)
@@ -170,8 +174,8 @@ interpretInstruction program memory =
     -- Input value into pointer
     ',' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      , state = AwaitingInput
-      }, memory)
+      , inputChars = Maybe.withDefault [] (List.tail program.inputChars)
+      }, { memory | data = Dict.insert memory.pointer (Char.toCode <| Maybe.withDefault '\u{0000}' (List.head program.inputChars)) memory.data})
 
     -- Begin loop
     '[' -> case currentData of
