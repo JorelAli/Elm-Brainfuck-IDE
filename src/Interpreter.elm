@@ -98,7 +98,7 @@ validateProgram program progInput =
     countCommas : String -> Int
     countCommas str = 
       case String.uncons str of
-        Just (x, xs) -> 1 + countCommas xs
+        Just (x, xs) -> if x == ',' then 1 + countCommas xs else countCommas xs
         Nothing -> 0
   in
     if Tuple.first brackets /= Tuple.second brackets then MismatchedBrackets
