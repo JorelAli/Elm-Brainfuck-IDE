@@ -38,6 +38,30 @@ defaultProgram = """+++++ +++++
 > +++++.
 > +++."""
 
+-- Color schemes / "constant" CSS values
+theme : { 
+    secondary : Color
+  , primary : Color
+  , fontColor : Color
+  , fontSize : Float
+  , margins : Px
+  , primaryStr : String
+  , secondaryStr : String 
+  }
+theme =
+  let 
+    primaryStr = "360036" 
+    secondaryStr = "660066"
+  in
+  { primary = hex primaryStr
+  , secondary = hex secondaryStr
+  , fontColor = hex "FDF6E3"
+  , fontSize = 16
+  , margins = (px 20)
+  , primaryStr = primaryStr
+  , secondaryStr = secondaryStr
+  }
+
 -- MAIN
 main : Platform.Program () Model Msg
 -- Note the use of Browser.document, which gives us 
@@ -82,65 +106,51 @@ main = Browser.document {
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
-subscriptions model = Sub.none -- Browser.Events.onKeyDown keyDecoder
-
--- keyDecoder : Decode.Decoder Msg
--- keyDecoder = Decode.map toKey (Decode.field "key" Decode.string)
-
--- toKey : String -> Msg
--- toKey string =
---   case string of 
---     "Tab" -> EnterTab
---     _ -> DoNothing
+subscriptions model = Sub.none
 
 -- MODEL
 type alias Model = { 
-      content : String    -- Program input
-    , progOutput : String -- Program output
-    , displayOptions : Bool 
-    , progInput : String -- Program input (via commas)
+      code : String         -- The Brainfuck code 
+    , progOutput : String   -- Brainfuck output
+    , progInput : String    -- Brainfuck inputs
+    , displaySidebar : Bool -- Whether sidebar is enabled
   }
 
 -- Initial state
 init : flags -> (Model, Cmd Msg)
 init _ = ({ 
-  content = defaultProgram
-  , progOutput = ""
-  , displayOptions = False 
-  , progInput = ""
+    code = defaultProgram  
+  , progOutput = ""        
+  , progInput = ""         
+  , displaySidebar = False 
   }, Cmd.none)
 
 -- UPDATE
 type Msg
-  = Change String -- When the program input has been changed
-  | Update        -- When a program has been evaluated (run code is pressed)
-  | UpdateFormat  -- When the format button is pressed
-  | Unformat      -- Unformats the code
-  | GotoGithub    -- ... Goes to GitHub
-  | ToggleOptions 
-  | ConvertToOok
-  | ConvertFromOok
-  | ChangeInput String
-  -- | EnterTab
-  -- | DoNothing
+  = EditCode String  -- Update the program's code
+  | Execute          -- Evaluates the program
+  | Format           -- Formats the code
+  | Unformat         -- Unformats the code
+  | GotoGithub       -- Goes to GitHub
+  | ToggleSidebar    -- Toggles the sidebar
+  | ConvertToOok     -- Converts Brainfuck to Ook
+  | ConvertFromOok   -- Converts from Ook to Brainfuck
+  | EditInput String -- When the input to the program has been changed
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    -- Update program input
-    Change newContent -> ({ model | content = newContent }, Cmd.none)
-    -- Update program output
-    Update -> ({ model | progOutput = simpleInterpret model.content model.progInput }, Cmd.none)
-    -- Format program
-    UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
-    Unformat -> ({ model | content = unformat model.content }, Cmd.none)
-    GotoGithub -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
-    ToggleOptions -> ({ model | displayOptions = not model.displayOptions }, Cmd.none)
-    ConvertToOok -> ({ model | content = convertToOok model.content }, Cmd.none)
-    ConvertFromOok -> ({ model | content = convertFromOok model.content }, Cmd.none)
-    ChangeInput newInput -> ({ model | progInput = newInput }, Cmd.none)
-    -- DoNothing -> (model, Cmd.none)
-    -- EnterTab -> ({model | content = ""}, Cmd.none)
+    EditCode newCode    -> ({ model | code = newCode }, Cmd.none)
+    Format              -> ({ model | code = format model.code }, Cmd.none)
+    Unformat            -> ({ model | code = unformat model.code }, Cmd.none)
+    ConvertToOok        -> ({ model | code = convertToOok model.code }, Cmd.none)
+    ConvertFromOok      -> ({ model | code = convertFromOok model.code }, Cmd.none)
+
+    GotoGithub          -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
+
+    ToggleSidebar       -> ({ model | displaySidebar = not model.displaySidebar }, Cmd.none)
+    EditInput newInput  -> ({ model | progInput = newInput }, Cmd.none)
+    Execute             -> ({ model | progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
 
 -- VIEW (Main div)
 view : Model -> Html Msg
@@ -154,27 +164,10 @@ view model =
   ]
     [ 
       title
-      , if model.displayOptions then optionCodeBlock model else codingBlock model
+      , if model.displaySidebar then optionCodeBlock model else codingBlock model
       , inputBlock model
       , outputBlock model 
-      -- , toolbar model
     ]
-
--- Color schemes / "constant" CSS values
-theme : { secondary : Color, primary : Color, fontColor : Color, fontSize : Float, margins : Px, primaryStr : String, secondaryStr : String }
-theme =
-  let 
-    primaryStr = "360036" 
-    secondaryStr = "660066"
-  in
-  { primary = hex primaryStr --"002B36" 
-  , secondary = hex secondaryStr --"2AA198"
-  , fontColor = hex "FDF6E3"
-  , fontSize = 16
-  , margins = (px 20)
-  , primaryStr = primaryStr
-  , secondaryStr = secondaryStr
-  }
 
 -- Title (at top of page)
 title : Html Msg
@@ -207,8 +200,8 @@ optionCodeBlock model = div [
   ] [
     textarea [ 
       placeholder "Brainfuck Program"
-      , value model.content
-      , onInput Change
+      , value model.code
+      , onInput EditCode
       , rows 20
       , css [
           centeredElements
@@ -260,7 +253,7 @@ optionCodeBlock model = div [
           , marginLeft zero
           , marginBottom theme.margins
         ]
-        , onClick UpdateFormat 
+        , onClick Format 
         ] [ text "Format code" ] 
       , button [ 
         css [ 
@@ -280,7 +273,6 @@ optionCodeBlock model = div [
           , width (pct 100) 
           , height (pt 40)
           , marginLeft zero
-          -- , marginBottom theme.margins
         ]
         , onClick GotoGithub 
         ] [ text "GitHub Page" ] 
@@ -311,8 +303,8 @@ inputBlock model =  div [
       , overflowY hidden
     ]
     , placeholder "Code input"
-    , onInput ChangeInput
-  ] [ text (model.progInput) ]
+    , onInput EditInput
+  ] []
   ]
 
 -- Output block (where program output goes)
@@ -344,15 +336,15 @@ outputBlock model = div [
   ] [ text (model.progOutput) ]
   , button [ 
       css [ buttonCss ]
-      , onClick Update 
+      , onClick Execute 
     ] [ text "Run code!" ] 
   , button [ 
       css [ 
         buttonCss 
         , width (em 3)
-        , backgroundColor (if model.displayOptions then theme.secondary else theme.primary)
+        , backgroundColor (if model.displaySidebar then theme.secondary else theme.primary)
       ]
-      , onClick ToggleOptions 
+      , onClick ToggleSidebar 
     ] [ text "🛠️" ] 
   ]
 
@@ -386,62 +378,14 @@ labelCss = Css.batch [
     , marginBottom zero
   ]
 
--- Toolbar of useful buttons (below the output)
-toolbar : Model -> Html Msg
-toolbar model = div [
-    css [
-      width (pct 100)
-      , displayFlex
-      , marginBottom theme.margins
-    ]
-  ] [ 
-    button [ 
-      css [
-        centeredElements
-        , buttonCss
-        , height (pt 40)
-        , width (pct 25)
-        , marginLeft zero
-      ]
-      , onClick UpdateFormat 
-    ] [ text "Format code" ] 
-    , button [ 
-      css [
-        centeredElements
-        , buttonCss
-        , height (pt 40)
-        , width (pct 25)
-      ]
-      , onClick Unformat 
-    ] [ text "Minify code" ] 
-    , button [ 
-      css [
-        centeredElements
-        , buttonCss
-        , height (pt 40)
-        , width (pct 25)
-      ]
-      , onClick ToggleOptions
-    ] [ text "Toggle toolbar" ] 
-    , button [ 
-      css [
-        centeredElements
-        , buttonCss
-        , height (pt 40)
-        , width (pct 25)
-      ]
-      , onClick GotoGithub 
-    ] [ text "GitHub page" ] 
-  ]
-
 -- Main coding block
 codingBlock : Model -> Html Msg
 codingBlock model = div []
   [
     textarea [ 
       placeholder "Brainfuck Program"
-      , value model.content
-      , onInput Change
+      , value model.code
+      , onInput EditCode
       , rows 20
       , css [
           centeredElements

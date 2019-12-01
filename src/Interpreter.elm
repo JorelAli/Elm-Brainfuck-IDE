@@ -95,11 +95,14 @@ validateProgram program progInput =
     brackets : (Int, Int)
     brackets = countBrackets program
 
-    countCommas : Int
-    countCommas = String.foldl (\c -> \acc -> if c == ',' then (acc + 1) else 0) 0 program
+    countCommas : String -> Int
+    countCommas str = 
+      case String.uncons str of
+        Just (x, xs) -> 1 + countCommas xs
+        Nothing -> 0
   in
     if Tuple.first brackets /= Tuple.second brackets then MismatchedBrackets
-    else if countCommas /= String.length progInput then MissingInput
+    else if countCommas program > String.length progInput then MissingInput
     else Good
 
 -- Counts the number of brackets in a String
