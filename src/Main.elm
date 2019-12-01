@@ -2,67 +2,305 @@ module Main exposing (..)
 
 --Main code goes here
 
+-- Import browser 
 import Browser
-import Html exposing (Html, Attribute, div, input, textarea, text, button)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
-import Interpreter exposing (..)
+
+-- Subscription handling
+import Browser.Events
+import Json.Decode as Decode
+
+-- Command handling
+import Browser.Navigation exposing (load)
+
+-- CSS
+import Css exposing (..)
+import Css.Global exposing (global, body, selector)
+
+-- HTML
+import Html.Styled exposing (Html, div, textarea, button, text, hr)
+import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute)
+import Html.Styled.Events exposing (onClick, onInput)
+
+-- Brainfuck helpers
+import Interpreter exposing (simpleInterpret)
+import Formatter exposing (format, unformat)
 
 -- CONSTANTS
 defaultProgram : String
-defaultProgram = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+defaultProgram = """+++++ +++++ 
+[
+    > +++
+    > +++++ ++
+    > +++++ +++++ 
+    <<< -
+]
+>> ++.
+> +++++ .
+<< +++.
+"""
 
 -- MAIN
-main =
-  Browser.sandbox { 
-      init = init
-      , update = update
-      , view = view 
-      }
+main : Platform.Program () Model Msg
+-- Note the use of Browser.document, which gives us 
+-- access to a much more powerful "view" method
+main = Browser.document { 
+  init = init
+  , update = update
+  , view = \model -> {
+      -- Title for webpage
+      title = "Brainfuck IDE"
+      -- Set global body styling
+    , body = List.map Html.Styled.toUnstyled [
+      global [ 
+        body [
+          backgroundColor theme.primary
+        ]
+        -- Style the scrollbar with Webkit
+        , selector "::-webkit-scrollbar" [
+          property "background" "#002B36"
+        ]
+        , selector "::-webkit-scrollbar-track" [
+          property "background" "#002B36"
+        ]
+        , selector "::-webkit-scrollbar-thumb" [
+          property "background" "#2AA198"
+        ]
+        , selector "::-webkit-scrollbar-thumb:hover" [
+          property "background" "#2AA198"
+        ]
+        , selector "::-webkit-resizer" [
+          property "background-color" "#2AA198"
+          , property "background" "#2AA198"
+          , property "color" "#2AA198"
+        ]
+      ]
+      -- Rest of the HTML
+      , view model
+    ]
+  }
+  , subscriptions = subscriptions
+  }
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model = Sub.none -- Browser.Events.onKeyDown keyDecoder
+
+-- keyDecoder : Decode.Decoder Msg
+-- keyDecoder = Decode.map toKey (Decode.field "key" Decode.string)
+
+-- toKey : String -> Msg
+-- toKey string =
+--   case string of 
+--     "Tab" -> EnterTab
+--     _ -> DoNothing
 
 -- MODEL
 type alias Model = { 
-    content : String
-    , progOutput : String
+      content : String    -- Program input
+    , progOutput : String -- Program output
   }
 
-init : Model
-init =
-  { content = defaultProgram, progOutput = "" }
+-- Initial state
+init : flags -> (Model, Cmd Msg)
+init _ = ({ content = defaultProgram, progOutput = "" }, Cmd.none)
 
 -- UPDATE
 type Msg
-  = Change String
-  | Update
+  = Change String -- When the program input has been changed
+  | Update        -- When a program has been evaluated (run code is pressed)
+  | UpdateFormat  -- When the format button is pressed
+  | Unformat      -- Unformats the code
+  | GotoGithub    -- ... Goes to GitHub
+  -- | EnterTab
+  -- | DoNothing
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    -- Update program input
     Change newContent ->
-      { model | content = newContent }
-    Update -> { model | progOutput = simpleInterpret model.content }
+      ({ model | content = newContent }, Cmd.none)
+    -- Update program output
+    Update -> ({ model | progOutput = simpleInterpret model.content }, Cmd.none)
+    -- Format program
+    UpdateFormat -> ({ model | content = format model.content }, Cmd.none)
+    Unformat -> ({ model | content = unformat model.content }, Cmd.none)
+    GotoGithub -> (model, load "https://github.com/JorelAli/Elm-Brainfuck-IDE")
+    -- DoNothing -> (model, Cmd.none)
+    -- EnterTab -> ({model | content = ""}, Cmd.none)
 
--- VIEW
+-- VIEW (Main div)
 view : Model -> Html Msg
-view model =
-  div []
-    [ textarea [ placeholder "Brainfuck Program", value model.content, onInput Change, rows 43, cols 80 ] []
-    , div [] [ textarea [] [ text (model.progOutput) ] ]
-    , button [ onClick Update ] [ text "blah" ]
+view model = 
+  div [
+    css [
+      marginLeft auto
+      , marginRight auto
+      , width (pct 80)
+    ]
+  ]
+    [ 
+      title
+      , codingBlock model
+      , outputBlock model 
+      , toolbar model
     ]
 
-simpleInterpret : String -> String
-simpleInterpret input = if
-    validateProgram input == False
-  then
-    "nope"
-  else 
-    interpret (createProgram input) defaultMemory |> printOutput
+-- Color schemes / "constant" CSS values
+theme : { secondary : Color, primary : Color, fontColor : Color, fontSize : Float, margins : Px }
+theme =
+  { primary = hex "360036" --"002B36" 
+  , secondary = hex "660066" --"2AA198"
+  , fontColor = hex "FDF6E3"
+  , fontSize = 16
+  , margins = (px 20)
+  }
 
-validateProgram : String -> Bool
-validateProgram program = 
-  let
-    brackets : (Int, Int)
-    brackets = countBrackets program
-  in
-    Tuple.first brackets == Tuple.second brackets
+-- Title (at top of page)
+title : Html Msg
+title = div [
+    css [
+      fontSize (pt 40)
+      , color theme.fontColor
+      , centeredElements
+      , textAlign center
+      , paddingBottom theme.margins
+      , paddingTop (px 40)
+      , width (pct 100)
+      , fontFamilies [ "monospace" ]
+    ]
+  ] 
+  [ 
+    text "Brainfuck IDE" 
+    , hr [] []
+  ]
+
+-- Output block (where program output goes)
+outputBlock : Model -> Html Msg
+outputBlock model = div [
+    css [
+      width (pct 100)
+      , displayFlex
+      , marginBottom theme.margins
+    ]
+  ] [ 
+    textarea [
+    css [
+        centeredElements
+      , backgroundColor theme.primary
+      , color theme.fontColor
+      , fontSize (pt theme.fontSize)
+      , width (pct 80)
+      , borderColor theme.secondary
+      , borderWidth (px 5)
+      , padding (px 10)
+      , height (pt 20)
+      , minHeight (pt 20)
+      , overflowY hidden
+    ]
+    , readonly True
+  ] [ text (model.progOutput) ]
+  , button [ 
+      css [ buttonCss ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
+  ]
+
+-- CSS for buttons
+buttonCss : Style
+buttonCss = Css.batch [
+    width (pct 20)
+    , marginLeft theme.margins
+    , backgroundColor theme.primary
+    , color theme.fontColor
+    , fontSize (pt theme.fontSize)
+    , borderColor theme.secondary
+    , borderWidth (px 5)
+    , borderStyle solid
+    , hover
+      [ 
+        borderColor theme.primary
+        , backgroundColor theme.secondary
+      ]
+  ]
+
+-- Toolbar of useful buttons (below the output)
+toolbar : Model -> Html Msg
+toolbar model = div [
+    css [
+      width (pct 100)
+      , displayFlex
+      , marginBottom theme.margins
+    ]
+  ] [ 
+    button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+        , marginLeft zero
+      ]
+      , onClick UpdateFormat 
+    ] [ text "Format code" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick Unformat 
+    ] [ text "Minify code" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick Update 
+    ] [ text "Run code!" ] 
+    , button [ 
+      css [
+        centeredElements
+        , buttonCss
+        , height (pt 40)
+        , width (pct 25)
+      ]
+      , onClick GotoGithub 
+    ] [ text "GitHub page" ] 
+  ]
+
+-- Main coding block
+codingBlock : Model -> Html Msg
+codingBlock model = div []
+  [
+    textarea [ 
+      placeholder "Brainfuck Program"
+      , value model.content
+      , onInput Change
+      , rows 20
+      , css [
+          centeredElements
+        , backgroundColor theme.primary
+        , color theme.fontColor
+        , fontSize (pt theme.fontSize)
+        , width (calc (pct 100) minus (px 30))
+        , borderColor theme.secondary
+        , borderWidth (px 5)
+        , padding (px 10)
+        , marginBottom theme.margins
+      ]
+    ] []
+  ]
+
+-- Style that centers elements
+centeredElements : Style
+centeredElements = Css.batch [ 
+    display block
+    , resize vertical
+    , marginLeft auto
+    , marginRight auto
+    , width (pct 50)
+  ]
