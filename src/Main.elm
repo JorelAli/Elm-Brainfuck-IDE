@@ -114,6 +114,7 @@ type alias Model = {
     , progOutput : String   -- Brainfuck output
     , progInput : String    -- Brainfuck inputs
     , displaySidebar : Bool -- Whether sidebar is enabled
+    , autoRun : Bool
   }
 
 -- Initial state
@@ -123,6 +124,7 @@ init _ = ({
   , progOutput = ""        
   , progInput = ""         
   , displaySidebar = False 
+  , autoRun = False
   }, Cmd.none)
 
 -- UPDATE
@@ -136,11 +138,12 @@ type Msg
   | ConvertToOok     -- Converts Brainfuck to Ook
   | ConvertFromOok   -- Converts from Ook to Brainfuck
   | EditInput String -- When the input to the program has been changed
+  | ToggleAutoRun
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    EditCode newCode    -> ({ model | code = newCode }, Cmd.none)
+    EditCode newCode    -> ({ model | code = newCode, progOutput = if model.autoRun then simpleInterpret newCode model.progInput else model.progOutput }, Cmd.none)
     Format              -> ({ model | code = format model.code }, Cmd.none)
     Unformat            -> ({ model | code = unformat model.code }, Cmd.none)
     ConvertToOok        -> ({ model | code = convertToOok model.code }, Cmd.none)
@@ -151,6 +154,7 @@ update msg model =
     ToggleSidebar       -> ({ model | displaySidebar = not model.displaySidebar }, Cmd.none)
     EditInput newInput  -> ({ model | progInput = newInput }, Cmd.none)
     Execute             -> ({ model | progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
+    ToggleAutoRun       -> ({ model | autoRun = not model.autoRun }, Cmd.none)
 
 -- VIEW (Main div)
 view : Model -> Html Msg
@@ -345,7 +349,15 @@ outputBlock model = div [
         , backgroundColor (if model.displaySidebar then theme.secondary else theme.primary)
       ]
       , onClick ToggleSidebar 
-    ] [ text "🛠️" ] 
+    ] [ text "🛠" ] 
+  , button [ 
+      css [ 
+        buttonCss 
+        , width (em 3)
+        , backgroundColor (if model.autoRun then theme.secondary else theme.primary)
+      ]
+      , onClick ToggleAutoRun 
+    ] [ text "▶️" ] 
   ]
 
 -- CSS for buttons

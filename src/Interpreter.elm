@@ -1,7 +1,7 @@
 module Interpreter exposing (..)
 
 import Dict exposing (Dict)
-import Formatter exposing (convertFromOok)
+import Formatter exposing (convertFromOok, unformat)
 
 -- Memory (pointer to current cell and "an array" of index to value)
 type alias Memory = {
@@ -85,8 +85,9 @@ simpleInterpret input progInput =
     Good -> interpret (createProgram (convertFromOok input) progInput) defaultMemory |> printOutput
     MismatchedBrackets -> "Failed to run program! (Some brackets aren't matching)"
     MissingInput -> "Failed to run program! (Input doesn't have enough characters)"
+    InfiniteLoop -> "Infinite loop detected! (Look for [] in your code)"
 
-type Validation = Good | MismatchedBrackets | MissingInput
+type Validation = Good | MismatchedBrackets | MissingInput | InfiniteLoop
 
 -- Checks if a program is valid (has the right number of brackets)
 validateProgram : String -> String -> Validation
@@ -100,9 +101,13 @@ validateProgram program progInput =
       case String.uncons str of
         Just (x, xs) -> if x == ',' then 1 + countCommas xs else countCommas xs
         Nothing -> 0
+
+    checkInfiniteLoops : String -> Bool
+    checkInfiniteLoops str = String.contains "[]" (unformat str)
   in
     if Tuple.first brackets /= Tuple.second brackets then MismatchedBrackets
-    else if countCommas program > String.length progInput then MissingInput
+    else if checkInfiniteLoops program then InfiniteLoop
+    else if countCommas program > String.length progInput then Good --MissingInput
     else Good
 
 -- Counts the number of brackets in a String
