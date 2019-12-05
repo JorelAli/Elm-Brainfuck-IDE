@@ -154,7 +154,7 @@ update msg model =
     ToggleSidebar       -> ({ model | displaySidebar = not model.displaySidebar }, Cmd.none)
     EditInput newInput  -> ({ model | progInput = newInput }, Cmd.none)
     Execute             -> ({ model | progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
-    ToggleAutoRun       -> ({ model | autoRun = not model.autoRun }, Cmd.none)
+    ToggleAutoRun       -> ({ model | autoRun = not model.autoRun, progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
 
 -- VIEW (Main div)
 view : Model -> Html Msg
