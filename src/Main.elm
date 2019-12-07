@@ -48,7 +48,8 @@ theme : {
   , fontSize : Float
   , margins : Px
   , primaryStr : String
-  , secondaryStr : String 
+  , secondaryStr : String
+  , font : Style
   }
 theme =
   let 
@@ -62,6 +63,7 @@ theme =
   , margins = (px 20)
   , primaryStr = primaryStr
   , secondaryStr = secondaryStr
+  , font = fontFamilies [ "Lucida Console", "Monaco", "monospace" ]
   }
 
 -- MAIN
@@ -142,8 +144,8 @@ type Msg
   | ConvertToOok     -- Converts Brainfuck to Ook
   | ConvertFromOok   -- Converts from Ook to Brainfuck
   | EditInput String -- When the input to the program has been changed
-  | ToggleAutoRun
-  | UpdateBits Bits
+  | ToggleAutoRun    -- Toggles live interpreter
+  | UpdateBits Bits  -- Changes number of bits
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -190,7 +192,7 @@ title = div [
       , textAlign center
       , paddingTop (px 40)
       , width (pct 100)
-      , fontFamilies [ "monospace" ]
+      , theme.font
     ]
   ] 
   [ 
@@ -324,7 +326,7 @@ memoryBlock model =
         , borderColor theme.secondary
         , borderWidth (px 5)
         , borderStyle solid
-        , fontFamilies ["monospace"]
+        , theme.font
         , padding (px 10)
         , textAlign center
       ]
@@ -411,7 +413,7 @@ buttonCss = Css.batch [
     , borderColor theme.secondary
     , borderWidth (px 5)
     , borderStyle solid
-    , fontFamilies ["monospace"]
+    , theme.font
     , hover
       [ 
         backgroundColor theme.secondary
@@ -426,7 +428,7 @@ labelCss = Css.batch [
     , color theme.fontColor
     , fontSize (pt theme.fontSize)
     , textAlign center
-    , fontFamilies ["monospace"]
+    , theme.font
     , marginTop zero
     , marginBottom zero
   ]
