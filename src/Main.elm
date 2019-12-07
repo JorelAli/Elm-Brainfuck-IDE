@@ -21,8 +21,10 @@ import Html.Styled exposing (Html, div, textarea, button, text, hr, p, input)
 import Html.Styled.Attributes exposing (css, href, src, placeholder, value, rows, cols, readonly, attribute, type_)
 import Html.Styled.Events exposing (onClick, onInput)
 
+import Dict
+
 -- Brainfuck helpers
-import Interpreter exposing (simpleInterpret)
+import Interpreter exposing (simpleInterpret, interpretWithMemory, Memory, Bits(..))
 import Formatter exposing (format, unformat, convertToOok, convertFromOok)
 
 -- CONSTANTS
@@ -115,6 +117,7 @@ type alias Model = {
     , progInput : String    -- Brainfuck inputs
     , displaySidebar : Bool -- Whether sidebar is enabled
     , autoRun : Bool
+    , numBits : Bits
   }
 
 -- Initial state
@@ -125,6 +128,7 @@ init _ = ({
   , progInput = ""         
   , displaySidebar = False 
   , autoRun = False
+  , numBits = Eight
   }, Cmd.none)
 
 -- UPDATE
@@ -139,11 +143,12 @@ type Msg
   | ConvertFromOok   -- Converts from Ook to Brainfuck
   | EditInput String -- When the input to the program has been changed
   | ToggleAutoRun
+  | UpdateBits Bits
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    EditCode newCode    -> ({ model | code = newCode, progOutput = if model.autoRun then simpleInterpret newCode model.progInput else model.progOutput }, Cmd.none)
+    EditCode newCode    -> ({ model | code = newCode, progOutput = if model.autoRun then simpleInterpret newCode model.progInput model.numBits else model.progOutput }, Cmd.none)
     Format              -> ({ model | code = format model.code }, Cmd.none)
     Unformat            -> ({ model | code = unformat model.code }, Cmd.none)
     ConvertToOok        -> ({ model | code = convertToOok model.code }, Cmd.none)
@@ -153,8 +158,9 @@ update msg model =
 
     ToggleSidebar       -> ({ model | displaySidebar = not model.displaySidebar }, Cmd.none)
     EditInput newInput  -> ({ model | progInput = newInput }, Cmd.none)
-    Execute             -> ({ model | progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
-    ToggleAutoRun       -> ({ model | autoRun = not model.autoRun, progOutput = simpleInterpret model.code model.progInput }, Cmd.none)
+    Execute             -> ({ model | progOutput = simpleInterpret model.code model.progInput model.numBits }, Cmd.none)
+    ToggleAutoRun       -> ({ model | autoRun = not model.autoRun, progOutput = simpleInterpret model.code model.progInput model.numBits }, Cmd.none)
+    UpdateBits bits     -> ({ model | numBits = bits }, Cmd.none)
 
 -- VIEW (Main div)
 view : Model -> Html Msg
@@ -171,6 +177,7 @@ view model =
       , if model.displaySidebar then optionCodeBlock model else codingBlock model
       , inputBlock model
       , outputBlock model 
+      , memoryBlock model
     ]
 
 -- Title (at top of page)
@@ -277,9 +284,34 @@ optionCodeBlock model = div [
           , width (pct 100) 
           , height (pt 40)
           , marginLeft zero
+          , marginBottom theme.margins
         ]
         , onClick GotoGithub 
         ] [ text "GitHub Page" ] 
+      , p [ css [labelCss] ] [ text "Number of Bits" ]
+      , hr [] []
+      , div [
+          css [displayFlex]
+        ] (
+          let 
+            radioAttrs : Bits -> List (Html.Styled.Attribute Msg)
+            radioAttrs bits = [
+              css [ 
+                buttonCss 
+                , width (pct 25) 
+                , height (pt 40)
+                , marginLeft zero
+                , if bits == model.numBits then backgroundColor theme.secondary else backgroundColor theme.primary
+                ]
+              , onClick (UpdateBits bits)
+              ]
+          in 
+            [
+            button (radioAttrs Eight) [ text "8" ] 
+            , button (radioAttrs Sixteen) [ text "16" ] 
+            , button (radioAttrs ThirtyTwo) [ text "32" ] 
+            , button (radioAttrs Unlimited) [ text "±∞" ] 
+            ])
     ]
   ]
 
@@ -310,6 +342,48 @@ inputBlock model =  div [
     , onInput EditInput
   ] []
   ]
+
+memoryBlock : Model -> Html Msg
+memoryBlock model = 
+  let
+    result : (String, Memory)
+    result = interpretWithMemory model.code model.progInput model.numBits
+
+    memoryCellCss : Style
+    memoryCellCss = Css.batch [
+        width (calc (pct 5) minus (px 30)) 
+        , backgroundColor theme.primary
+        , color theme.fontColor
+        , fontSize (pt theme.fontSize)
+        , borderColor theme.secondary
+        , borderWidth (px 5)
+        , borderStyle solid
+        , fontFamilies ["monospace"]
+        , padding (px 10)
+        , textAlign center
+      ]
+
+    generateBlocks : Memory -> List (Html Msg)
+    generateBlocks memory =
+      Dict.foldr (\k -> \v -> \acc -> 
+        div [
+          css [
+            memoryCellCss
+            , backgroundColor (if memory.pointer == k then theme.secondary else theme.primary)
+          ]
+        ] [ text (String.fromInt v) ] :: acc
+      ) [] (memory.data) 
+
+  in
+    div [
+      css [
+      width (pct 100)
+      , displayFlex
+      , flexWrap wrap
+      , marginBottom theme.margins
+      , marginTop theme.margins
+      ]
+    ] (generateBlocks (Tuple.second result))
 
 -- Output block (where program output goes)
 outputBlock : Model -> Html Msg
@@ -371,6 +445,7 @@ buttonCss = Css.batch [
     , borderColor theme.secondary
     , borderWidth (px 5)
     , borderStyle solid
+    , fontFamilies ["monospace"]
     , hover
       [ 
         backgroundColor theme.secondary
@@ -385,7 +460,7 @@ labelCss = Css.batch [
     , color theme.fontColor
     , fontSize (pt theme.fontSize)
     , textAlign center
-    , fontFamilies ["Arial"]
+    , fontFamilies ["monospace"]
     , marginTop zero
     , marginBottom zero
   ]

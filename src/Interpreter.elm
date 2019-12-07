@@ -16,6 +16,8 @@ defaultMemory = {
   , data = Dict.empty
   }
 
+type Bits = Eight | Sixteen | ThirtyTwo | Unlimited
+
 type alias Program = {
     program: String
     {-- 
@@ -32,16 +34,18 @@ type alias Program = {
     , instructionPointer : Int
     , output : List Char
     , inputChars : List Char
+    , numBits : Bits
   }
 
 -- Turns a String into a Program
-createProgram : String -> String -> Program 
-createProgram input progInput = {
+createProgram : String -> String -> Bits -> Program 
+createProgram input progInput bits = {
     program = input
     , jumpMap = generateJumpMap input
     , instructionPointer = 0
     , output = []
     , inputChars = String.toList progInput
+    , numBits = bits
   }
 
 -- Generates the jump map 
@@ -79,13 +83,26 @@ printOutput result =
   |> String.reverse
 
 -- Interprets a program string and returns its string output
-simpleInterpret : String -> String -> String
-simpleInterpret input progInput = 
+simpleInterpret : String -> String -> Bits -> String
+simpleInterpret input progInput bits = 
   case validateProgram input progInput of
-    Good -> interpret (createProgram (convertFromOok input) progInput) defaultMemory |> printOutput
+    Good -> interpret (createProgram (convertFromOok input) progInput bits) defaultMemory |> printOutput
     MismatchedBrackets -> "Failed to run program! (Some brackets aren't matching)"
     MissingInput -> "Failed to run program! (Input doesn't have enough characters)"
     InfiniteLoop -> "Infinite loop detected! (Look for [] in your code)"
+
+interpretWithMemory : String -> String -> Bits -> (String, Memory)
+interpretWithMemory input progInput bits =
+  case validateProgram input progInput of
+    Good -> 
+      let 
+        result : (Program, Memory)
+        result = interpret (createProgram (convertFromOok input) progInput bits) defaultMemory
+      in
+        (result |> printOutput, Tuple.second result)
+    MismatchedBrackets -> ("Failed to run program! (Some brackets aren't matching)", defaultMemory)
+    MissingInput -> ("Failed to run program! (Input doesn't have enough characters)", defaultMemory)
+    InfiniteLoop -> ("Infinite loop detected! (Look for [] in your code)", defaultMemory)
 
 type Validation = Good | MismatchedBrackets | MissingInput | InfiniteLoop
 
@@ -142,6 +159,14 @@ interpretInstruction program memory =
     update : (Int -> Int -> Int) -> Int
     update operation = operation currentData 1
 
+    sanitizeInt : Bits -> Int -> Int
+    sanitizeInt bits val = 
+      case bits of
+        Eight -> modBy (2^8) val
+        Sixteen  -> modBy (2^16) val
+        ThirtyTwo  -> modBy (2^32) val
+        Unlimited -> val
+
     currentData : Int
     currentData = Maybe.withDefault 0 <| Dict.get memory.pointer memory.data 
 
@@ -157,22 +182,24 @@ interpretInstruction program memory =
     -- Increment pointer
     '>' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      }, { memory | pointer = memory.pointer + 1})
+      }, { memory | pointer = memory.pointer + 1
+                    , data = if Dict.member (memory.pointer + 1) memory.data then memory.data else Dict.insert (memory.pointer + 1) 0 memory.data }) 
 
     -- Decrement pointer
     '<' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      }, { memory | pointer = memory.pointer - 1})
+      }, { memory | pointer = if memory.pointer == 0 then 0 else memory.pointer - 1
+                    , data = if Dict.member (if memory.pointer == 0 then 0 else memory.pointer - 1) memory.data then memory.data else Dict.insert (memory.pointer - 1) 0 memory.data }) 
 
     -- Increment value at pointer
     '+' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      }, { memory | data = Dict.insert memory.pointer (update (+)) memory.data})
+      }, { memory | data = Dict.insert memory.pointer (sanitizeInt program.numBits (update (+))) memory.data})
 
     -- Decrement value at pointer
     '-' -> ({program 
       | instructionPointer = program.instructionPointer + 1
-      }, { memory | data = Dict.insert memory.pointer (update (-)) memory.data})
+      }, { memory | data = Dict.insert memory.pointer (sanitizeInt program.numBits (update (-))) memory.data})
 
     -- Output value at pointer
     '.' -> ({program 
@@ -183,7 +210,7 @@ interpretInstruction program memory =
     ',' -> ({program 
       | instructionPointer = program.instructionPointer + 1
       , inputChars = Maybe.withDefault [] (List.tail program.inputChars)
-      }, { memory | data = Dict.insert memory.pointer (Char.toCode <| Maybe.withDefault '\u{0000}' (List.head program.inputChars)) memory.data})
+      }, { memory | data = Dict.insert memory.pointer (sanitizeInt program.numBits (Char.toCode <| Maybe.withDefault '\u{0000}' (List.head program.inputChars))) memory.data})
 
     -- Begin loop
     '[' -> case currentData of
