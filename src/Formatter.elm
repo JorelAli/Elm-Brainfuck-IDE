@@ -106,14 +106,14 @@ convertToOok str =
       case String.uncons restOfProgram of
         Just (letter, tail) -> 
           case letter of
-            '>' -> convertToOokHelper tail ("Ook. Ook? " ++ acc)
-            '<' -> convertToOokHelper tail ("Ook? Ook. " ++ acc)
-            '+' -> convertToOokHelper tail ("Ook. Ook. " ++ acc)
-            '-' -> convertToOokHelper tail ("Ook! Ook! " ++ acc)
-            '.' -> convertToOokHelper tail ("Ook! Ook. " ++ acc)
-            ',' -> convertToOokHelper tail ("Ook. Ook! " ++ acc)
-            '[' -> convertToOokHelper tail ("Ook! Ook? " ++ acc)
-            ']' -> convertToOokHelper tail ("Ook? Ook! " ++ acc)
+            '>' -> convertToOokHelper tail (acc ++ "Ook. Ook? ")
+            '<' -> convertToOokHelper tail (acc ++ "Ook? Ook. ")
+            '+' -> convertToOokHelper tail (acc ++ "Ook. Ook. ")
+            '-' -> convertToOokHelper tail (acc ++ "Ook! Ook! ")
+            '.' -> convertToOokHelper tail (acc ++ "Ook! Ook. ")
+            ',' -> convertToOokHelper tail (acc ++ "Ook. Ook! ")
+            '[' -> convertToOokHelper tail (acc ++ "Ook! Ook? ")
+            ']' -> convertToOokHelper tail (acc ++ "Ook? Ook! ")
             _ -> convertToOokHelper tail acc
         Nothing -> acc
   in
@@ -130,7 +130,7 @@ convertFromOok str =
     pairList : List String -> List (String, String)
     pairList list = 
       case list of
-        a :: b :: xs -> pairList xs ++ [(a, b)]
+        a :: b :: xs -> (a, b) :: pairList xs
         [] -> []
         [_] -> []
     

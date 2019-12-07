@@ -7976,12 +7976,10 @@ var $author$project$Formatter$convertFromOok = function (str) {
 				var _v1 = list.b;
 				var b = _v1.a;
 				var xs = _v1.b;
-				return _Utils_ap(
-					pairList(xs),
-					_List_fromArray(
-						[
-							_Utils_Tuple2(a, b)
-						]));
+				return A2(
+					$elm$core$List$cons,
+					_Utils_Tuple2(a, b),
+					pairList(xs));
 			} else {
 				return _List_Nil;
 			}
@@ -8073,49 +8071,49 @@ var $author$project$Formatter$convertToOok = function (str) {
 					switch (letter) {
 						case '>':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook. Ook? ' + acc;
+								$temp$acc = acc + 'Ook. Ook? ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case '<':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook? Ook. ' + acc;
+								$temp$acc = acc + 'Ook? Ook. ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case '+':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook. Ook. ' + acc;
+								$temp$acc = acc + 'Ook. Ook. ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case '-':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook! Ook! ' + acc;
+								$temp$acc = acc + 'Ook! Ook! ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case '.':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook! Ook. ' + acc;
+								$temp$acc = acc + 'Ook! Ook. ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case ',':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook. Ook! ' + acc;
+								$temp$acc = acc + 'Ook. Ook! ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case '[':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook! Ook? ' + acc;
+								$temp$acc = acc + 'Ook! Ook? ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
 						case ']':
 							var $temp$restOfProgram = tail,
-								$temp$acc = 'Ook? Ook! ' + acc;
+								$temp$acc = acc + 'Ook? Ook! ';
 							restOfProgram = $temp$restOfProgram;
 							acc = $temp$acc;
 							continue convertToOokHelper;
