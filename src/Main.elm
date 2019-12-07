@@ -202,8 +202,39 @@ title = div [
     ] []
   ]
 
+-- Option code block
 optionCodeBlock : Model -> Html Msg
-optionCodeBlock model = div [
+optionCodeBlock model = 
+  let
+    optionButtonCss : Html.Styled.Attribute msg
+    optionButtonCss = css [ 
+        buttonCss 
+        , width (pct 100) 
+        , height (pt 40)
+        , marginLeft zero
+        , marginBottom theme.margins
+      ]
+    
+    labelOf : String -> Html msg
+    labelOf str = p [ css [labelCss] ] [ text str ]
+
+    rule : Html msg
+    rule = hr [] []
+
+    radioAttrs : Bits -> List (Html.Styled.Attribute Msg)
+    radioAttrs bits = [
+      css [ 
+        buttonCss 
+        , width (pct 25) 
+        , height (pt 40)
+        , marginLeft zero
+        , if bits == model.numBits then backgroundColor theme.secondary else backgroundColor theme.primary
+        ]
+      , onClick (UpdateBits bits)
+      ]
+
+  in
+  div [
     css [
       width (pct 100)
       , displayFlex
@@ -232,86 +263,21 @@ optionCodeBlock model = div [
         , marginLeft theme.margins
       ]
     ] [
-      p [ css [labelCss] ] [ text "Ook Conversion" ]
-      , hr [] []
-      , button [ 
-        css [ 
-          buttonCss 
-          , width (pct 100) 
-          , height (pt 40)
-          , marginLeft zero
-          , marginBottom theme.margins
+      labelOf "Ook Conversion", rule
+      , button [ optionButtonCss, onClick ConvertToOok ] [ text "Convert to Ook!" ] 
+      , button [ optionButtonCss, onClick ConvertFromOok ] [ text "Convert from Ook!" ] 
+      , labelOf "Code Formatting", rule
+      , button [ optionButtonCss, onClick Format ] [ text "Format code" ] 
+      , button [ optionButtonCss, onClick Unformat ] [ text "Minify code" ] 
+      , labelOf "External Links", rule
+      , button [ optionButtonCss, onClick GotoGithub ] [ text "GitHub Page" ] 
+      , labelOf "Number of Bits", rule
+      , div [ css [ displayFlex ] ] [
+        button (radioAttrs Eight) [ text "8" ] 
+        , button (radioAttrs Sixteen) [ text "16" ] 
+        , button (radioAttrs ThirtyTwo) [ text "32" ] 
+        , button (radioAttrs Unlimited) [ text "±∞" ] 
         ]
-        , onClick ConvertToOok 
-        ] [ text "Convert to Ook!" ] 
-      , button [ 
-        css [ 
-          buttonCss 
-          , width (pct 100) 
-          , height (pt 40)
-          , marginLeft zero
-          , marginBottom theme.margins
-        ]
-        , onClick ConvertFromOok 
-        ] [ text "Convert from Ook!" ] 
-      , p [ css [labelCss] ] [ text "Code Formatting" ]
-      , hr [] []
-      , button [ 
-        css [ 
-          buttonCss 
-          , width (pct 100) 
-          , height (pt 40)
-          , marginLeft zero
-          , marginBottom theme.margins
-        ]
-        , onClick Format 
-        ] [ text "Format code" ] 
-      , button [ 
-        css [ 
-          buttonCss 
-          , width (pct 100) 
-          , height (pt 40)
-          , marginLeft zero
-          , marginBottom theme.margins
-        ]
-        , onClick Unformat 
-        ] [ text "Minify code" ] 
-      , p [ css [labelCss] ] [ text "External Links" ]
-      , hr [] []
-      , button [ 
-        css [ 
-          buttonCss 
-          , width (pct 100) 
-          , height (pt 40)
-          , marginLeft zero
-          , marginBottom theme.margins
-        ]
-        , onClick GotoGithub 
-        ] [ text "GitHub Page" ] 
-      , p [ css [labelCss] ] [ text "Number of Bits" ]
-      , hr [] []
-      , div [
-          css [displayFlex]
-        ] (
-          let 
-            radioAttrs : Bits -> List (Html.Styled.Attribute Msg)
-            radioAttrs bits = [
-              css [ 
-                buttonCss 
-                , width (pct 25) 
-                , height (pt 40)
-                , marginLeft zero
-                , if bits == model.numBits then backgroundColor theme.secondary else backgroundColor theme.primary
-                ]
-              , onClick (UpdateBits bits)
-              ]
-          in 
-            [
-            button (radioAttrs Eight) [ text "8" ] 
-            , button (radioAttrs Sixteen) [ text "16" ] 
-            , button (radioAttrs ThirtyTwo) [ text "32" ] 
-            , button (radioAttrs Unlimited) [ text "±∞" ] 
-            ])
     ]
   ]
 
